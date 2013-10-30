@@ -61,7 +61,7 @@ local options = {
 		int_help = 'Help',
 		int_search = 'Busqueda avanzada',
 		int_search_name = 'Search by name',
-		int_title = 'Estas viendo',
+		int_titl = '<h1>Estas viendo</h1>',
 		int_season = 'Season (series)',
 		int_episode = 'Episode (series)',
 		int_show_help = 'Show help',
@@ -288,7 +288,7 @@ function descriptor()
 		url = 'http://www.fcinema.org/prueba.php',
 		shortdesc = "fcinema";
 		description = options.translation.int_descr,
-		capabilities = {"menu", "intf" }
+		capabilities = { "interface", 0 }
 	}
 end
 
@@ -325,7 +325,8 @@ function deactivate()
 	if fcinema.session.token and fcinema.session.token ~= "" then
 		fcinema.request("LogOut")
 	end
-   vlc.deactivate()
+	vlc.var.del_callback( vlc.object.input(), "intf-event", edl.check )
+    vlc.deactivate()
 end
 
 function menu()
@@ -352,9 +353,9 @@ function interface_main()
 	dlg:add_button( "Ver pelicula", edl.launch, 4, 10, 1, 1)
 	dlg:add_button( "Buscar", net.getinfo, 2, 10, 1, 1)
 	
-	dlg:add_label(lang["int_title"]..':', 1, 1, 1, 1)
+	dlg:add_label( "<h1>The avengers</h1>", 1, 1, 2, 1)
 	--dlg:add_html( "<h1>Los vengadores</h1>", 3, 1, 2, 4 )
-	input_table['title'] = dlg:add_text_input(movie.movie.title or "", 2, 1, 1, 1)
+	--input_table['title'] = dlg:add_text_input(movie.movie.title or "", 2, 1, 1, 1)
 	--input_table['mainlist'] = dlg:add_list(1, 4, 4, 1)
 	--input_table['message'] = nil
 	--input_table['message'] = dlg:add_label(' ', 1, 6, 4, 1)
@@ -375,6 +376,7 @@ end
 
 function set_interface_main()
 	-- Update movie title and co. if video input change
+	if 1 then return false end
 	if not type(input_table['title']) == 'userdata' then return false end
 	
 	fcinema.getFileInfo()
@@ -989,15 +991,6 @@ end
 						 ]]--
 
 --[[ EDL stuff ]]
-dbg = {
-	i = 1,
-	msg = function( s )
-		local mainlist = input_table["mainlist"]
-		mainlist:clear()
-		mainlist:add_value( s..dbg.i , dbg.i )
-		dbg.i = dbg.i + 1
-	end,
-}
 
 edl = {
 	--scenes = { [5] = 10, [15] = 20, [25] = 30, [35] = 40 },
@@ -1006,30 +999,27 @@ edl = {
 	stop = { 15, 25, 35, 45 },
 
 	launch = function()
-		--edl.read_data( "v/3/2354.25/2468.96/Descripcion de la escena sin demasiado detalle;v/3/2354.25/2468.96/Descripcion de otra escena distinta de la anterior escena;" )
-		local t, i
-		while 1 do
-			sleep( 1 )
-			if edl.stop[1] < edl.gettime() then
-				edl.start[1] = edl.start[1] + 10;
-				edl.stop[1] = edl.stop[1] + 10;
-				edl.goto( edl.start[1] )
-			end
-			--edl.check( edl.gettime() )
-		end
+
+		edl.goto( 5 )
+		vlc.var.add_callback( vlc.object.input(), "intf-event", edl.check )
+
+		vlc.msg.dbg( "Callback activada " )
+
 	end,
 
-	check = function( t )
+	check = function( )
+		t = edl.gettime()
+		vlc.msg.err( "Comprobando tiempo " .. t )
 		--for be, en in pairs( scenes ) do
 		--	if t > be and t < en then
 		--		edl.goto( en )
 		--	end
 		--end
+
 		local i = 1
 		while i < #edl.start do
-			vlc.msg.dbg( i )
-			if t and t > edl.start[i] and t < edl.stop[i] then
-				edl.goto( edl.stop[i] )
+			if t and t > edl.start[i] and t < edl.stop[i] then				
+				edl.goto( edl.stop[i] + 1 )
 			end
 			i = i+1
 		end
@@ -1037,7 +1027,8 @@ edl = {
 
 	goto = function( time )
 		--TODO check there is an input
-		vlc.var.set( vlc.object.input(), "time", time )
+		local duration = vlc.input.item():duration()
+        vlc.var.set( vlc.object.input(), "position", time / duration)
 	end,
 
 	gettime = function()
@@ -1851,14 +1842,4 @@ end
 
 function remove_tag(str)
 	return string.gsub(str, "{[^}]+}", "")
-end
-
-function sleep(sec)
-   --local t = vlc.misc.mdate()
-   --vlc.msg.dbg( t )
-   --vlc.msg.dbg( t + sec*1000*1000 )
-   --vlc.misc.mwait( vlc.misc.mdate() + 2*1000*1000 )
-   --vlc.misc.( t/1000 + 5*sec*1000)
-
-   os.execute("sleep " .. tonumber(sec))
 end
