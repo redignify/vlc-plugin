@@ -24,6 +24,8 @@
 
 ------------------------------- VLC STUFF ------------------------------------
 
+--iconitio, evitar palabras raras "hash", 
+
 
 function descriptor()
 	return { 
@@ -41,11 +43,11 @@ function activate()
 	
 	vlc.msg.dbg("[Fcinema] Welcome")
 
-	intf.main.show()
-
-	cache.load_config()
+	intf.loading.show()
 
 	media.get_info()
+
+	intf.main.show()
 
 end
 
@@ -76,110 +78,275 @@ end
 local dlg = nil
 
 intf = {
-	input_table = {},
+	items = {},
+
+	loading = {
+		show = function ( )
+			intf.change_dlg()
+			intf.items["message"] = dlg:add_label("", 1, 99, 10, 1)
+		end,
+	},
 	main = {
-		--dlg = nil,
 		show = function()
 
-			intf.close_dlg()
-			dlg = vlc.dialog( "fcinema")
-			
-			intf.input_table["title"] = dlg:add_label( "<i><center>Estas viendo...</center></i>", 1, 1, 3, 1)
+			intf.change_dlg()
 
-			dlg:add_label('<center><i>Select your own style</i></center>', 1, 2, 3, 1)
+			-- Static
+			local title = intf.sty.tit( fcinema.data['tit'] ) or intf.sty.tit( 'El hobbit' )--"<i><center>Estas viendo...</center></i>"
+			intf.items["title"] = dlg:add_label( title, 1, 1, 10, 1)
+			intf.items["director"] = dlg:add_label( " ", 1, 2, 1, 1)
+			intf.items["pg"] = dlg:add_label( " ", 3, 2, 1, 1)
 
-			intf.input_table["message"] = dlg:add_label("", 1, 7, 3, 1)
-			
-			dlg:add_label('Violence:', 1, 3, 1, 1)
-			--dlg:add_image( '/home/miguel/violence.png', 1, 3, 1, 1)
-			intf.input_table['Violence'] = dlg:add_dropdown(2, 3, 2, 1)
-			intf.input_table['Violence']:add_value( "Choose violence level", 1 )
-			intf.input_table['Violence']:add_value( "Allow some minor scenes", 2 )
-			intf.input_table['Violence']:add_value( "Avoid only hard scenes", 3 )
-			intf.input_table['Violence']:add_value( "Show all violence ", 4 )
+			intf.items['ba'] = dlg:add_button( "Avanzado", intf.advanced.show, 3, 100, 1, 1)
+			intf.items['bay'] = dlg:add_button( "Ayuda", intf.change_dlg, 2, 100, 1, 1)
+			intf.items['bv'] = dlg:add_button( "Ver pelicula", edl.activate, 6, 100, 1, 1)
 
-			dlg:add_label('Sex:', 1, 4, 1, 1)
-			intf.input_table['Sex'] = dlg:add_dropdown(2, 4, 2, 1)
-			intf.input_table['Sex']:add_value( "Avoid all sex", 1 )
-			intf.input_table['Sex']:add_value( "Allow some minor scenes", 2 )
-			intf.input_table['Sex']:add_value( "Avoid only explicit scenes", 3 )
-			intf.input_table['Sex']:add_value( "Show all sex ", 4 )
+			intf.items["message"] = dlg:add_label("", 1, 99, 10, 1)
 
-			dlg:add_label('Language:', 1, 5, 1, 1)
-			intf.input_table['Language'] = dlg:add_dropdown(2, 5, 2, 1)
-			intf.input_table['Language']:add_value( "Avoid all language", 1 )
-			intf.input_table['Language']:add_value( "Allow some minor scenes", 2 )
-			intf.input_table['Language']:add_value( "Avoid only explicit scenes", 3 )
-			intf.input_table['Language']:add_value( "Show all language ", 4 )
+			-- "Dynamic"
+			local row = 10
+			for k,v in pairs( intf.main.list ) do
+				intf.main.add_list( k, row )
+				row = row + 10
+			end
 
-			dlg:add_button( "Editor", intf.editor.show, 1, 10, 1, 1)
-			dlg:add_button( "Buscar", media.get_info, 2, 10, 1, 1)
-			--dlg:add_button( "Close", deactivate, 2, 10, 1, 1)
-			dlg:add_button( "Ver pelicula", edl.activate, 3, 10, 1, 1)
+			--intf.items['vm6'] = dlg:add_button( "Violencia moderada", intf.main.show_4, 1, 40, 2, 1)
+			--intf.items['s40'] = dlg:add_check_box( 'Skip (2 escenas)', 1, 3, 40, 2)
 			
 			collectgarbage()
+		end,
+
+		list = {},
+
+		actions = {},
+
+		button = {},
+
+		label = {'Violencia extrema '},
+
+		add_list = function ( typ, row )
+			if row == 10 then
+				func = intf.main.show_1
+			elseif row == 20 then
+				func = intf.main.show_2
+			else
+				func = intf.main.show_3
+			end
+			intf.items['l'..typ] = dlg:add_button( intf.main.label[1]..typ, func, 1, row, 2, 1)
+			intf.items['s'..row] = dlg:add_check_box( 'Skip ('..#intf.main.list[typ]..' escenas)', 1, 3, row, 2)
+			intf.main.button[ row / 10 ] = typ
+		end,
+
+		create_list = function ( ... )
+			for k,v in pairs( fcinema.data['type'] ) do
+				if not intf.main.list[v] then
+					intf.main.list[v] = {}
+				end
+				table.insert( intf.main.list[v], k )
+				intf.main.actions[k] = true
+			end
+		end,
+
+		show_1 = function (  ) intf.main.show_n( 1 ) end,
+		show_2 = function (  ) intf.main.show_n( 2 ) end,
+		show_3 = function (  ) intf.main.show_n( 3 ) end,
+		show_4 = function (  ) intf.main.show_n( 4 ) end,
+		show_5 = function (  ) intf.main.show_n( 5 ) end,
+		show_6 = function (  ) intf.main.show_n( 6 ) end,
+
+		add_header = function ( row )
+			intf.del( 's'..(row-1) )
+			intf.items['de'..row] = dlg:add_label('<b><i>Descipción</i></b>', 2, row, 2, 1)
+			intf.items['d'..row] = dlg:add_label('<b><i>Duración</i></b>', 5, row, 1, 1)
+			intf.items['i'..row] = dlg:add_label('<b><i>Inicio</i></b>', 4, row, 1, 1)
+		end,
+
+		del_header = function ( row )
+			local typ = intf.main.button[ ( row -1 )/ 10 ]
+			local num = 0
+			for k,v in pairs( intf.main.list[typ] ) do
+				if intf.main.actions[v] == true then
+					num = num + 1
+				end
+			end
+			intf.items['s'.. (row-1)] = dlg:add_check_box( 'Skip ('..num..' escenas)', 1, 3, row-1, 1)
+			intf.del( 'de'..row )
+			intf.del( 'd'..row )
+			intf.del( 'i'..row )
+		end,
+		
+		add_scene = function ( row, num )
+			local len = fcinema.data['stop'][num] - fcinema.data['start'][num]
+			local hour = intf.to_hour( fcinema.data['start'][num] )
+
+			intf.items['de'..row] = dlg:add_label( fcinema.data['desc'][num], 2, row, 2, 1)
+			intf.items['d'..row] = dlg:add_label('<center>'..len..'"</center>', 5, row, 1, 1)
+			intf.items['i'..row] = dlg:add_label( hour, 4, row, 1, 1)
+			intf.items['s'..row] = dlg:add_check_box( 'Skip', 1, 6, row, 2)
+			intf.items['s'..row]:set_checked( intf.main.actions[num] )
+		end,
+		
+		del_scene = function ( row, num )
+			intf.del( 'de'..row )
+			intf.del( 'd'..row )
+			intf.del( 'i'..row )
+			intf.main.actions[num] = intf.items['s'..row]:get_checked()
+			intf.del( 's'..row )
+		end,
+		
+		show_n = function ( n )
+			
+			local row = n * 10
+			
+			if intf.items['s'..row] then
+				--vlc.msg.dbg( 'adding '..row )
+				typ = intf.main.button[n]
+				for i,v in ipairs( intf.main.list[typ] ) do
+					intf.main.add_scene( row + i + 1, v )
+				end
+				intf.main.add_header( row + 1)
+			else
+				--vlc.msg.dbg( 'deleting ' .. row )
+				typ = intf.main.button[n]
+				for i,v in ipairs( intf.main.list[typ] ) do
+					intf.main.del_scene( row + i + 1, v )
+				end
+				intf.main.del_header( row + 1 )
+			end
+		end,
+	},
+
+	change_dlg = function ( ... )
+		for k,v in pairs( intf.items ) do
+			intf.del( k )
+		end
+		intf.items = nil
+		intf.items = {}
+		if not dlg then dlg = vlc.dialog( "fcinema") end
+		collectgarbage()
+	end,
+
+	del = function ( str )
+		if intf.items[ str ] then
+			dlg:del_widget( intf.items[ str ] )
+			intf.items[ str ] = nil
+		end
+	end,
+
+	to_hour = function ( time )
+		
+		if type( time ) == "string" then return time end
+		local sec = time%60
+		local min = (time - sec )/60
+		--local hour = sec/3600
+		sec = math.floor( sec * 10 ) / 10
+		if sec < 10 then sec = '0'..sec end
+		if min < 10 then min = ' '..min end
+		return min..':'..sec
+	end,
+
+	advanced = {
+		show = function ( ... )
+			intf.change_dlg()
+			intf.items['e'] = dlg:add_button( "Editor", intf.editor.show, 1, 10, 1, 1)
 		end,
 	},
 
 	editor = {
 
 		show = function (  )
-			intf.close_dlg()
-			dlg = vlc.dialog( "fcinema editor" )
-			intf.input_table['list'] = dlg:add_list( 1, 2, 6, 5 )
-			dlg:add_button( "Get time", intf.editor.get_time, 3, 10, 1, 1)
-			dlg:add_button( "Volver", intf.main.show, 4, 10, 1, 1)
-			intf.input_table['Start'] = dlg:add_text_input( "", 2, 1, 1, 1 )
-			intf.input_table['Stop'] = dlg:add_text_input( "", 3, 1, 1, 1 )
-			intf.input_table['Type'] = dlg:add_dropdown(4, 1, 1, 1)
-				intf.input_table['Type']:add_value( "Vio", 1 )
-				intf.input_table['Type']:add_value( "Sex", 2 )
-				intf.input_table['Type']:add_value( "Lan", 3 )
-			intf.input_table['Desc'] = dlg:add_text_input( "", 5, 1, 4, 1 )
+			intf.change_dlg()
+			--dlg = vlc.dialog( "fcinema editor" )
+			intf.items['list'] = dlg:add_list( 1, 2, 4, 5 )
+			intf.items['a'] = dlg:add_button( "Empieza ahora", intf.editor.get_time, 2, 10, 1, 1)
+			intf.items['b'] = dlg:add_button( "Termina ahora", intf.editor.get_time2, 3, 10, 1, 1)
+			intf.items['c'] = dlg:add_button( "Añadir escena", intf.editor.add_value, 5, 5, 1, 1)
+			intf.items['d'] = dlg:add_button( "Volver", intf.main.show, 10, 10, 1, 1)
+			intf.items['e'] = dlg:add_button( "Editar selección", intf.main.show, 5, 6, 1, 1)
+
+			intf.items['Start'] = dlg:add_text_input( "", 2, 9, 1, 1 )
+			intf.items['Stop'] = dlg:add_text_input( "", 3, 9, 1, 1 )
+			intf.items['Type'] = dlg:add_dropdown(4, 10, 1, 1)
+				intf.items['Type']:add_value( "v", 1 )
+				intf.items['Type']:add_value( "x", 2 )
+				intf.items['Type']:add_value( "s", 3 )
+			intf.items['Desc'] = dlg:add_text_input( "", 5, 10, 4, 1 )
 			intf.editor.fill_scenes()
 			collectgarbage()
 		end,
 
 		get_time = function ()
-			local str = media.get_time()
+			local str = intf.to_hour( media.get_time() )
 			vlc.msg.err( str )
-			intf.input_table["Start"]:set_text( str )			
+			intf.items["Start"]:set_text( str )		
+		end,
+
+		get_time2 = function ()
+			local str = intf.to_hour( media.get_time() )
+			vlc.msg.err( str )
+			intf.items["Stop"]:set_text( str )			
+		end,
+
+		add_value = function ( )
+			local start = intf.items["Start"]:get_text() or ''
+			local stop = intf.items["Stop"]:get_text() or ''
+			local desc = intf.items["Desc"]:get_text() or ''
+			local typ = intf.items["Type"]:get_text() or ''
+
+			intf.editor.add_scene( start, stop, desc, typ, i )
+			
+		end,
+
+		add_scene = function ( start, stop, desc, typ, i )
+			start = intf.to_hour( start )
+			stop = intf.to_hour( stop )
+			intf.items['list']:add_value( start .." ".. stop.." "..typ.." "..desc, i)
+		end,
+
+		read_scene = function ( id )
+			
+
+			return start, stop, desc, typ
 		end,
 
 		fill_scenes = function()
-			local list = intf.input_table["list"]
-			list:clear()
-			for i=1,#edl.desc do
-				list:add_value( edl.desc[i].." "..edl.start[i].." "..edl.stop[i], i)
+			intf.items['list']:clear()
+			local data = fcinema.data
+			for i,v in ipairs( data['desc'] ) do
+				intf.editor.add_scene( data['start'][i], data['stop'][i], data['desc'][i], data['type'][i], i )
 			end
 		end,
 	},
 	
-
-	show_help = function (  )
-		-- body
-		intf.close_dlg()
-		dlg = vlc.dialog( "fcinema helper" )
-		collectgarbage()
-	end,
+	help = {
+		show = function (  )
+			intf.change_dlg()
+			--dlg = vlc.dialog( "fcinema helper" )
+			collectgarbage()
+		end,
+	},
+	
 
 	msg = function ( str )
-		if intf.input_table["message"] then
-			intf.input_table["message"]:set_text(str)
+		if intf.items["message"] then
+			intf.items["message"]:set_text(str)
 			dlg:update()
 		end
 	end,
 
 	sty = {
 		err = function ( str )
+			if not str then return end
 			return "<span style='color:#B23'><b>"..str.."</b></span> "
 		end,
 
 		ok = function ( str )
+			if not str then return end
 			return "<span style='color:#181'><b>"..str.."</b></span> "
 		end,
 
 		tit = function ( str )
+			if not str then return end
 			return "<i><center><h1>"..str.."</h1></center></i>"
 		end
 	},
@@ -187,7 +354,7 @@ intf = {
 
 
 	progress_bar = function ( pct )
-		local size = 20
+		local size = 30
 		local accomplished = math.ceil( size*pct/100)
 		local left = size - accomplished
 		return "<span style='background-color:#181;color:#181;'>"..
@@ -198,15 +365,15 @@ intf = {
 
 	close_dlg = function ()
 		
-		if dlg ~= nil then 
+		if dlg ~= nil then
 			vlc.msg.dbg("[Fcinema] Closing dialog")
 			--~ dlg:delete() -- Throw an error
 			dlg:hide()
 		end
 		
 		dlg = nil
-		input_table = nil
-		input_table = {}
+		items = nil
+		items = {}
 		collectgarbage() --~ !important	
 	end,
 
@@ -215,13 +382,11 @@ intf = {
 --------------------------- CONFIGURATION ------------------------------------
 
 config = {
-	fcinema_api = "http://fcinema.org/api.php",
-	userAgentHTTP = "fcinema",
-	useragent = "Fcinema",
 	lang = "esp",
 	progressBarSize = 80,
 	os = "",
-	version = "0.0"
+	version = "0.0",
+	agent = "vlc",
 }
 
 
@@ -230,27 +395,30 @@ config = {
 edl = {
 	start = {},
 	stop  = {},
-	typ   = {},
-	level = {},
-	desc  = {},
 	action= {},
 	active = false,
-	sync_data = {
-		start = nil,
-		speed = nil,
-	},
 
 	activate = function( )
-
 		if edl.active then
 			vlc.osd.message( "fcinema is already active", 1, "botton", 1000000 )
 			dlg:hide()
-		else	
+		else
+			if not edl.from_user() then return end
 			vlc.var.add_callback( vlc.object.input(), "intf-event", edl.check )
 			edl.active = true
 			vlc.osd.message( "fcinema activado", 1, "botton", 1000000 )
 			dlg:hide() 
 		end
+	end,
+
+	from_user = function ( ... )
+		for k,v in pairs( intf.main.actions ) do
+			if v then
+				table.insert( edl.start, fcinema.data['start'][k] )
+				table.insert( edl.stop, fcinema.data['stop'][k] )
+			end
+		end
+		return 1
 	end,
 
 	deactivate = function()
@@ -278,248 +446,125 @@ edl = {
 		end
 	end,
 
-	parse = function ( str )
-
-		-- key=value encoded info
-		title = string.match( str, "tit=(.-);")
-
-		intf.input_table['title']:set_text( intf.sty.tit( title ) or "Sorry, unknow movie" )
-		
-		-- csv encoded info
-		local i = 1
-		for start, stop, typ, level, desc 
-				in string.gfind( str, "&(.-);(.-);(.-);(.-);(.-);" ) do
-      		edl.start[i] = tonumber(start)
-      		edl.stop[i]  = tonumber(stop)
-      		edl.typ[i]   = typ
-      		edl.level[i] = tonumber(level)
-      		edl.desc[i]  = desc
-      		vlc.msg.dbg( "Readed:"..edl.start[i].." "..edl.stop[i].." "..typ.." "..edl.level[i].." "..desc.."\n")
-      		i = i + 1 -- TODO
-      		
-    	end
-		
-		intf.msg( "" )
-		edl.sync()
-
-	end,
-
-	dump = function ( )
-		--TODO: save edl info
-	end,
-
-	sync = function ( )
-		--TODO: modify edl times to fit movie versíon
-	end
 }
 
---------------------------------------- CACHE ----------------------------------------
+fcinema = {
 
-cache = {
-	
-	filename = "config.xml",
-	index = "fcinema.txt",
-	db_path = "movies",
-	saved = false,
-	path = nil,
-	slash = "/",
+	api_url = "http://fcinema.org/api.php",
+	data = {},
 
-	load_config = function()
-		if path == nil then cache.find_path() end
-		if path == nil then return end
-		--TODO: load saved config
-	end,
+	search = function()
 
-	save_config = function( )
-		--TODO: save to config file
-	end,
-
-	find_path = function( )
+		local params = ""
+		params = params .. "action=search"
+		params = params .. "&hash=".. media.file.hash
+		params = params .. "&filename=".. media.file.name
+		params = params .. "&bytesize=" .. media.file.bytesize
+		params = params .. "&agent=" .. config.agent..'-'.. config.version
+		params = params .. "&lang=" .. config.lang
 		
-		if is_window_path(vlc.config.datadir()) then
-			config.os = "win"
-			slash = "\\"
-			cache.slash = slash
+		local status, response = net.post( params, fcinema.api_url )
+
+		--if not response then return end
+		--TODO: use dkjson
+		local json = require ("dkjson")
+
+		response = '{ "tit":"Toy Story 3","type":["v","s","v","x"],"start":[200,25,136,289],"stop":[230,50,140,300],"desc":["cosas para saltar","escene fea","esto mejor no ver","basura grafica"]}'
+
+		--response = '{ "id":"0435761","tit":"Toy Story 3","director":"Lee Unkrich","pg":"G","rating":85 }'
+		local a = json.decode( response )
+
+		vlc.msg.dbg( type( a ) )
+		vlc.msg.dbg( dump_xml( a ) or a )
+
+		
+		local data = simple_json_decode( response )
+
+		if data['tit'] then
+			--intf.items['title']:set_text( intf.sty.tit( data['tit'] ) )
+			--intf.items['director']:set_text( data['director'][1] or "" )
+			--intf.items['pg']:set_text( "PG: " .. data['pg'] or "" )
+			fcinema.data = data
+			--vlc.msg.dbg( fcinema.data['type'] )
+			intf.main.create_list()
 		else
-			config.os = "lin"
-			slash = "/"
+			--intf.items['title']:set_text( "Sorry, unknow movie" )
 		end
-		
-		local path_generic = {"lua", "extensions", "userdata", "fcinema"}
-		local dirPath = slash..table.concat(path_generic, slash)
-		local filePath	= slash..cache.filename
-		
-		--[[ Not sure about this TODO
-		sub_dir = slash.."vlsub_subtitles"
-		
-		--  Check if config file path is stored in vlc config
-		
-		for path in vlc.config.get("sub-autodetect-path"):gmatch("[^,]+") do
-			if path:match(".*"..sub_dir.."$") then
-				cache.path = path:gsub("%s*(.*)"..sub_dir.."%s*$", "%1")
-				cache.saved = true
-			end
-		end
-		]]--
-		
-		-- if not stored in vlc config
-		-- try to find a suitable config file path
-		
-	    if cache.path then
-			if not is_dir(cache.path) and (config.os == "lin"  or is_win_safe(cache.path)) then
-				mkdir_p(cache.path)
-			end
-	    else
-
-	    -- Get clues from VLC
-			local userdatadir = vlc.config.userdatadir()
-			local datadir = vlc.config.datadir()
-			
-		-- Check if the config already exist
-			if file_exist(userdatadir..dirPath..filePath) then
-				cache.path = userdatadir..dirPath
-				cache.saved = true
-				return
-			elseif file_exist(datadir..dirPath..filePath) then
-				cache.path = datadir..dirPath
-				cache.saved = true
-				return
-			end
-
-		-- Create config files
-			
-			local extension_path = slash..path_generic[1]
-				..slash..path_generic[2]
-			
-			-- use the same folder as the extension if accessible
-			if is_dir(userdatadir..extension_path) 
-			and file_touch(userdatadir..dirPath..filePath) then
-					cache.path = userdatadir..dirPath
-			elseif file_touch(datadir..dirPath..filePath) then
-				cache.path = datadir..dirPath
-			end
-			
-			-- try to create working dir in user folder
-			if not cache.path
-			and is_dir(userdatadir) then
-				if not is_dir(userdatadir..dirPath) then
-					mkdir_p(userdatadir..dirPath)
-				end
-				if is_dir(userdatadir..dirPath) and
-				file_touch(userdatadir..dirPath..filePath) then
-					cache.path = userdatadir..dirPath
-				end
-			end
-			
-			-- try to create working dir in vlc folder	
-			if not cache.path and is_dir(datadir) then
-				if not is_dir(datadir..dirPath) then
-					mkdir_p(datadir..dirPath)
-				end
-				if file_touch(datadir..dirPath..filePath) then
-					cache.path = datadir..dirPath
-				end
-			end
-		end
+		intf.msg("")
+		return true
 	end,
-
-	find_movie = function( hash )
-		
-		vlc.msg.dbg( "Looking on local cache" )
-		intf.msg( "Looking for movie content on local cache")
-		slash = cache.slash
-
-		-- Get path
-		if not cache.path then
-			find_path()
-			if not cache.path then
-				intf.msg( "Sorry there is no cache")
-				return false
-			end
-		end
-		vlc.msg.dbg( cache.path .. slash .. cache.index )
-		local tmpFile = io.open( cache.path .. slash .. cache.index, "rb")
-		if not tmpFile then
-			intf.msg( "Imposible to open index")
-			return false
-		end
-		local index = tmpFile:read("*all")
-		tmpFile:flush()
-		tmpFile:close()
-
-		intf.msg( "data readed")
-		local pos, start, speed, movie_code = 
-			string.find( index, media.file.hash .. " (w+) (w+) (w+)" )
-
-		if start == nil then
-			--TODO search by name
-			intf.msg( "Sorry, this movie is not stored locally, try conecting to the web")
-			return false
-		end
-
-		local tmpFile = io.open( cache.path..slash..db_path..slash..movie_code..".txt", "rb")
-		if not tmpFile then return false end
-		local content_info = tmpFile:read("*all")
-		tmpFile:flush()
-		tmpFile:close()
-
-		edl.parse( content_info )
-
-	end,
-
-
+	
 }
+
+function simple_json_decode( json )
+
+	local function str2type( str )
+		a = string.match( str, '"(.+)"' )
+		if not a then a =  tonumber( str ) end
+		if not a then a = tonumber( str:gsub( '.',',') ) end
+		return a
+	end
+
+	local function table2type( t )
+		tf = {}
+		for i,v in ipairs( t ) do
+			a = str2type( v )
+			table.insert( tf, a )
+		end
+		return tf
+	end
+
+	local data = {}
+	-- single
+	for key, value in string.gmatch( json, '"([^:,]-)":([^:]-)[,}]') do
+		data[key] = str2type( value )
+	end
+	-- strings
+	for key, value in string.gmatch( json, '"([^:,]-)":%[([^:]-)][,}]') do
+		data[key] = table2type( split( value ) )
+	end
+
+	vlc.msg.dbg("[Fcinema] decoded ".. dump_xml(data) )
+	--vlc.msg.deb("json encoded " .. simple_json_encode(data) )
+
+	return data
+end
+
 --------------------------------------- NET -------------------------------------------
 
 net = {
-
-	is_available = function()
-		return true	--TODO
-	end,
-
-	ask_fcinema = function()
-
-		local params = ""
-		params = params .. "hash=".. media.file.hash
-		params = params .. "&filename=".. media.file.name
-		params = params .. "&version=" .. config.version
-		params = params .. "&lang=" .. config.lang
-		params = params .. "&bytesize=" .. media.file.bytesize
-
-		local status, response = net.post( params, config.fcinema_api )
-		-- TODO check response
-		edl.parse( response )
-
-	end,
 
 	post = function( params, url )
 		local host, path = net.parse_url( url )	
 		local header = {
 			"POST "..path.." HTTP/1.1", 
 			"Host: "..host, 
-			"User-Agent: "..config.userAgentHTTP, 
 			"Content-Type: application/x-www-form-urlencoded", 
 			"Content-Length: "..string.len(params),
 			"",
 			""
 		}
 		params = table.concat(header, "\r\n")..params
+		vlc.msg.dbg( params )
 		local status, response = net.http_req(host, 80, params)
+		vlc.msg.dbg( response or " " )
 		return status, response		
 	end,
 
 	http_req = function (host, port, request)
 
-		intf.msg( "Conectando con el servidor: ".. intf.progress_bar( 0 ) )
+		intf.msg( "Identificando película: ".. intf.progress_bar( 40 ) )
 		
 		local fd = vlc.net.connect_tcp(host, port)
 
-		if not fd then return false end
+		if not fd or fd == -1 then return false end
 		local pollfds = {}
-		
+		intf.msg( "Identificando película: ".. intf.progress_bar( 50 ) )
 		pollfds[fd] = vlc.net.POLLIN
 		vlc.net.send(fd, request)
-		vlc.net.poll(pollfds)	-- TODO: Peta si no hay servidor
+		intf.msg( "Identificando película: ".. intf.progress_bar( 70 ) )
+		vlc.net.poll(pollfds)
+		intf.msg( "Identificanto película: ".. intf.progress_bar( 80 ) )
 		local response = vlc.net.recv(fd, 1024)
 		local headerStr, body = string.match(response, "(.-\r?\n)\r?\n(.*)")
 		local header = net.parse_header(headerStr)
@@ -542,11 +587,11 @@ net = {
 				return false
 			end
 			bodyLenght = string.len(body)
-			pct = bodyLenght / contentLength * 100
+			pct = bodyLenght / contentLength * 30 + 70
 			intf.msg( "Recibiendo datos: ".. intf.progress_bar( pct ) )
 		end
 		vlc.net.close(fd)
-		
+				
 		return status, body
 	end,
 
@@ -592,16 +637,15 @@ media = {
 			intf.msg( intf.sty.err( "No input item") )
 			return
 		end
-
+		intf.msg( "Identificando película: ".. intf.progress_bar( 10 ) )
 		media.get_file_info()
+		intf.msg( "Identificando película: ".. intf.progress_bar( 20 ) )
 		media.get_hash()
+		intf.msg( "Identificando película: ".. intf.progress_bar( 30 ) )
 
-		if net.is_available() then
-			vlc.msg.dbg( "Network is available")
-			net.ask_fcinema()
-		else
+		if not fcinema.search() then
 			vlc.msg.dbg( "Network no available")
-			cache.find_movie()
+			--cache.find_movie()
 		end
 
 	end,
@@ -689,8 +733,7 @@ media = {
 
 	get_hash = function()
 	-- Compute hash according to opensub standards	
-		intf.msg("Calculating hash: ".. intf.progress_bar( 0 ) )
-		
+			
 		-- Get input and prepare stuff
 		local item = media.input_item()
 		
@@ -806,6 +849,103 @@ media = {
 
 ----------------------------------------- UTILS -----------------------------------------------
 
+
+function simple_json_encode( table )
+
+	local function str2json( str )
+		if type(str)=="number" then
+			return str
+		else
+			return '"'..str..'"'
+		end
+	end
+
+	local function type2json( value )
+		local json
+		if type(v)=="table" then
+			json = '['
+			for k, v in pairs( value ) do
+				json = json..str2json(v)..','
+			end
+			json = json ..']'
+		else
+			json = str2json( value )
+		end
+		return json
+	end
+
+	local str = '{'
+	for k, v in pairs( table ) do
+		str = str..'"'.. k..'":'
+		str = str..type2json(v)..','
+	end
+	return str..'}'
+
+end
+
+
+function dump_xml(data)
+	local level = 0
+	local stack = {}
+	local dump = ""
+	
+	local function parse(data, stack)
+		local data_index = {}
+		local k
+		local v
+		local i
+		local tb
+		
+		for k,v in pairs(data) do
+			table.insert(data_index, {k, v})
+			table.sort(data_index, function(a, b)
+				return a[1] < b[1] 
+			end)
+		end
+		
+		for i,tb in pairs(data_index) do
+			k = tb[1]
+			v = tb[2]
+			if type(k)=="string" then
+				dump = dump.."\r\n"..string.rep (" ", level).."<"..k..">"	
+				table.insert(stack, k)
+				level = level + 1
+			elseif type(k)=="number" and k ~= 1 then
+				dump = dump.."\r\n"..string.rep (" ", level-1).."<"..stack[level]..">"
+			end
+			
+			if type(v)=="table" then
+				parse(v, stack)
+			elseif type(v)=="string" then
+				dump = dump..(vlc.strings.convert_xml_special_chars(v) or v)
+			elseif type(v)=="number" then
+				dump = dump..v
+			else
+				dump = dump..tostring(v)
+			end
+			
+			if type(k)=="string" then
+				if type(v)=="table" then
+					dump = dump.."\r\n"..string.rep (" ", level-1).."</"..k..">"
+				else
+					dump = dump.."</"..k..">"
+				end
+				table.remove(stack)
+				level = level - 1
+				
+			elseif type(k)=="number" and k ~= #data then
+				if type(v)=="table" then
+					dump = dump.."\r\n"..string.rep (" ", level-1).."</"..stack[level]..">"
+				else
+					dump = dump.."</"..stack[level]..">"
+				end
+			end
+		end
+	end
+	parse(data, stack)
+	collectgarbage()
+	return dump
+end
 
 
 function dump_xml(data)
@@ -953,4 +1093,25 @@ function mkdir_p(path)
 	elseif config.os == "lin" then
 		os.execute("mkdir -p '" .. path.."'")
 	end
+end
+
+function split(str)
+	if str == nil then return end
+   local pat = ","
+   local t = {}  -- NOTE: use {n = 0} in Lua-5.0
+   local fpat = "(.-)" .. pat
+   local last_end = 1
+   local s, e, cap = str:find(fpat, 1)
+   while s do
+      if s ~= 1 or cap ~= "" then
+	 table.insert(t,cap)
+      end
+      last_end = e+1
+      s, e, cap = str:find(fpat, last_end)
+   end
+   if last_end <= #str then
+      cap = str:sub(last_end)
+      table.insert(t, cap)
+   end
+   return t
 end
