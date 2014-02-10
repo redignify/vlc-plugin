@@ -95,7 +95,6 @@ function meta_changed()
 end
 
 
-
 ---------------------------- INTERFACE ------------------------------------
 
 local dlg = nil
