@@ -33,13 +33,13 @@ then in the global VLC lua/{playlist,meta,intf}/ directory.
 
 function descriptor()
     return { 
-        title = "fcinema",
+        title = "Family Cinema",
         version = config.version,
         author = "arrietaeguren",
         url = 'http://www.fcinema.org',
         shortdesc = "fcinema",
         description = "fcinema",
-        capabilities = { "input-listener" }
+        capabilities = { "input-listener"}
     }
 end
 
@@ -100,7 +100,8 @@ end
 local dlg = nil
 
 intf = {
-    items = {},
+    
+    ------------------------- Loading message interface --------------------------------
 
     loading = {
         show = function ( )
@@ -108,6 +109,8 @@ intf = {
             intf.items["message"] = dlg:add_label("", 1, 99, 10, 1)
         end,
     },
+
+    --------------------------- Selecting movie interface --------------------------------
 
     confirm_movie = {
         show = function ( ... )
@@ -162,12 +165,15 @@ intf = {
 
     }, 
 
+
+    ---------------------------- Main window ---------------------------------------
+
+
     main = {
         show = function()
 
             intf.change_dlg()
             
-            intf.main.list = {}
             intf.main.actions = {}
             intf.main.button = {}
 
@@ -181,11 +187,11 @@ intf = {
 
             intf.items['advanced'] = dlg:add_button( "Avanzado", intf.advanced.show, 3, 100, 1, 1)
             intf.items['help'] = dlg:add_button( "Ayuda", intf.help.show, 1, 100, 2, 1)
-            intf.items['watch'] = dlg:add_button( "Ver pelicula", edl.activate, 10, 100, 2, 1)
+            intf.items['watch'] = dlg:add_button( "Ver pelicula", intf.main.watch_movie, 10, 100, 2, 1)
 
             intf.items["message"] = dlg:add_label("", 1, 99, 10, 1)
-
-            intf.items["image"] = dlg:add_image( 'http://ia.media-imdb.com/images/M/MV5BMTcwNTE4MTUxMl5BMl5BanBnXkFtZTcwMDIyODM4OA@@._V1_SX300.jpg', 2, 1, nil, 2 )
+            --intf.items["image"] = dlg:add_image( '/home/miguel/Documents/fcinema/toy_story.jpg',  2, 1, nil, 2 )
+            --intf.items["image"] = dlg:add_image( 'http://ia.media-imdb.com/images/M/MV5BMTcwNTE4MTUxMl5BMl5BanBnXkFtZTcwMDIyODM4OA@@._V1_SX300.jpg', 2, 1, nil, 2 )
             --fcinema.data['poster']
 
             -- "Dynamic"
@@ -207,6 +213,17 @@ intf = {
             ['sp'] = 'Desnudo explicito'
         },
 
+        watch_movie = function ( ... )
+        -- Read all values and start playback
+
+            for k,v in pairs( intf.main.button ) do
+                --FIXME Just a trick to read all values
+                intf.main.show_n( k )
+            end
+            
+            edl.activate()
+        end,
+
         add_list = function ( typ, row )
             if row == 10 then func = intf.main.show_1
             elseif row == 20 then func = intf.main.show_2
@@ -216,13 +233,17 @@ intf = {
             else func = intf.main.show_6
             end
             intf.items['l'..typ] = dlg:add_button( intf.main.label[typ] or typ, func, 1, row, 3, 1)
-            intf.items['s'..row] = dlg:add_check_box( 'Skip ('..#intf.main.list[typ]..' escenas)', 1, 4, row, 2)
+            intf.items['s'..row] = dlg:add_label( 'Skip ('..#intf.main.list[typ]..' escenas)', 4, row, 1, 1)
+            --intf.items['s'..row] = dlg:add_check_box( 'Skip ('..#intf.main.list[typ]..' escenas)', 1, 4, row, 2)
             intf.main.button[ row / 10 ] = typ
         end,
 
         create_list = function ( ... )
-            if not fcinema.data['type'] then return end
+        -- Creates a list of all scenes classified by type
+            -- e.g list['violence'] = { scene 4, scene 9 }
+
             intf.main.list = {}
+            if not fcinema.data['type'] then return end
             for k,v in pairs( fcinema.data['type'] ) do
                 if not intf.main.list[v] then
                     intf.main.list[v] = {}
@@ -230,7 +251,7 @@ intf = {
                 table.insert( intf.main.list[v], k )
                 intf.main.actions[k] = true
             end
-            vlc.msg.dbg( json.encode( intf.main.list ) )
+            --vlc.msg.dbg( json.encode( intf.main.list ) )
         end,
 
         read_values = function ( ... )
@@ -245,6 +266,7 @@ intf = {
         show_6 = function (  ) intf.main.show_n( 6 ) end,
 
         add_header = function ( row )
+        -- Print the scenes header on the interface (and delete section skip button)
             intf.del( 's'..(row-1) )
             intf.items['de'..row] = dlg:add_label('<b><center><i>Descipción</i></center></b>', 2, row, 6, 1)
             intf.items['d'..row] = dlg:add_label('<b><i>Duración</i></b>', 10, row, 1, 1)
@@ -252,24 +274,33 @@ intf = {
         end,
 
         del_header = function ( row )
+        -- Delete the scene headers from the interface (and print section skip button)
+
             local typ = intf.main.button[ ( row -1 )/ 10 ]
+            -- Count number of scenes to skip
             local num = 0
             for k,v in pairs( intf.main.list[typ] ) do
                 if intf.main.actions[v] == true then
                     num = num + 1
                 end
             end
-            intf.items['s'.. (row-1)] = dlg:add_check_box( 'Skip ('..num..' escenas)', 1, 4, row-1, 1)
+            -- Print to the interface
+            intf.items['s'.. (row-1)] = dlg:add_label( 'Skip ('..num..' escenas)', 4, row-1, 1, 1)
+            --intf.items['s'.. (row-1)] = dlg:add_check_box( 'Skip ('..num..' escenas)', 1, 4, row-1, 1)
             intf.del( 'de'..row )
             intf.del( 'd'..row )
             intf.del( 'i'..row )
         end,
-        
+    
         add_scene = function ( row, num )
+        -- Add one scene to the interface    
+
+            -- Pre-format data
             local len = fcinema.data['stop'][num] - fcinema.data['start'][num]
             len = math.floor( len )
             local hour = intf.to_hour( fcinema.data['start'][num], 1 )
 
+            -- Print data
             intf.items['de'..row] = dlg:add_label( fcinema.data['desc'][num], 2, row, 6, 1)
             intf.items['d'..row] = dlg:add_label('<center>'..len..'"</center>', 10, row, 1, 1)
             intf.items['i'..row] = dlg:add_label( hour, 9, row, 1, 1)
@@ -278,6 +309,8 @@ intf = {
         end,
         
         del_scene = function ( row, num )
+        -- Delete one scene from the interface and retrieve skip button value
+
             intf.del( 'de'..row )
             intf.del( 'd'..row )
             intf.del( 'i'..row )
@@ -286,10 +319,12 @@ intf = {
         end,
         
         show_n = function ( n )
-            
+        -- Show / hide scenes and headers from section n
+
             local row = n * 10
             
             if intf.items['s'..row] then
+            -- case 
                 --vlc.msg.dbg( 'adding '..row )
                 typ = intf.main.button[n]
                 for i,v in ipairs( intf.main.list[typ] ) do
@@ -307,42 +342,7 @@ intf = {
         end,
     },
 
-    change_dlg = function ( ... )
-        for k,v in pairs( intf.items ) do
-            intf.del( k )
-        end
-        intf.items = nil
-        intf.items = {}
-        if not dlg then dlg = vlc.dialog( "Family Cinema (Beta)") end
-        collectgarbage()
-    end,
-
-    del = function ( str )
-        if intf.items[ str ] then
-            dlg:del_widget( intf.items[ str ] )
-            intf.items[ str ] = nil
-        end
-    end,
-
-    to_hour = function ( time, precision )
-        if type( time ) == "string" then return time end
-        local sec = time%60
-        local min = (time - sec )/60
-        --local hour = sec/3600
-        sec = math.floor( sec * precision ) / precision
-        if sec < 10 then sec = '0'..sec end
-        if min < 10 then min = ' '..min end
-        return min..':'..sec
-    end,
-
-    to_sec = function ( str )
-        if not str or str == '' then return end
-        if type( str ) == "number" then return str end
-        local min, sec = string.match( str, '(.+):(.+)' )
-        sec = min * 60 + sec
-        return sec
-    end,
-
+    ------------------------------ Advanced dialog interface ------------------------------------
     advanced = {
         show = function ( ... )
             intf.change_dlg()
@@ -385,17 +385,27 @@ intf = {
         show = function ( ... )
             intf.change_dlg()
 
-            intf.items['l_texto'] = dlg:add_label( "Introduce tu comentario: ", 1, 1, 2, 1 )
-            intf.items['comment'] = dlg:add_text_input( "", 1, 2, 5, 1 )
-            intf.items['b_comment'] = dlg:add_button( "Enviar feedback", intf.feedback.send, 6, 2, 1, 1 )
+            intf.items['l_name'] = dlg:add_label( "Nombre (opcional): ", 1, 1, 2, 1 )
+            intf.items['name'] = dlg:add_text_input( "", 3, 1, 3, 1 )
 
-            intf.items["message"] = dlg:add_label("", 1, 9, 7, 1)
-            intf.items['b_back'] = dlg:add_button( "Volver", intf.advanced.show, 6, 10, 1, 1)
+            intf.items['l_mail'] = dlg:add_label( "Email (opcional): ", 1, 2, 2, 1 )
+            intf.items['mail'] = dlg:add_text_input( "", 3, 2, 3, 1 )
+
+            intf.items['l_comment'] = dlg:add_label( "Sugerencia: ", 1, 3, 2, 1 )
+            intf.items['comment'] = dlg:add_text_input( "", 3, 3, 3, 1 )
+
+            intf.items["message"] = dlg:add_label("", 1, 4, 3, 1)
+
+            intf.items['b_send'] = dlg:add_button( "Enviar feedback", intf.feedback.send, 3, 5, 1, 1 )         
+            intf.items['b_back'] = dlg:add_button( "Volver", intf.advanced.show, 2, 5, 1, 1)
 
         end,
 
         send = function ( ... )
-            fcinema.feedback( "","","")
+            local name = intf.items['name']:get_text()
+            local mail = intf.items['mail']:get_text()
+            local comment = intf.items['comment']:get_text()
+            fcinema.feedback( name,mail,comment)
         end,
 
     },
@@ -421,6 +431,9 @@ intf = {
             end
         end,
     },
+
+
+    ------------------------------- Editor dialog -----------------------------------
 
     editor = {
 
@@ -462,15 +475,15 @@ intf = {
 
             --intf.items['space'] = dlg:add_label( "", 9, 7, 1, 1 )
 
-            intf.items['b_next'] = dlg:add_button( "Siguiente", intf.editor.nextframe, 10, 7, 1, 1)
-            intf.items['b_previous'] = dlg:add_button( "Anterior", intf.editor.previousframe, 8, 7, 1, 1)
+            intf.items['b_next'] = dlg:add_button( "Frame ->", intf.editor.nextframe, 10, 7, 1, 1)
+            intf.items['b_previous'] = dlg:add_button( "<- Frame", intf.editor.previousframe, 8, 7, 1, 1)
             intf.items['b_play'] = dlg:add_button( "Play / Pause", intf.editor.play, 9, 7, 1, 1)
 
             intf.items['space2'] = dlg:add_label( "", 9, 9, 1, 1 )
 
-            intf.items['b_load'] = dlg:add_button( "Cargar", intf.editor.load, 7, 10, 1, 1)
-            intf.items['b_upload'] = dlg:add_button( "Subir", fcinema.upload, 8, 10, 1, 1)
-            intf.items['b_save'] = dlg:add_button( "Guardar", fcinema.save, 9, 10, 1, 1)
+            intf.items['b_load'] = dlg:add_button( "Cargar", intf.editor.load, 8, 10, 1, 1)
+            intf.items['b_upload'] = dlg:add_button( "Compartir en fcinema", fcinema.upload, 9, 10, 1, 1)
+            --intf.items['b_save'] = dlg:add_button( "Guardar", fcinema.save, 9, 10, 1, 1)
             intf.items['b_back'] = dlg:add_button( "Volver", intf.editor.close, 10, 10, 1, 1)
             
             intf.editor.fill_scenes()
@@ -518,11 +531,12 @@ intf = {
             media.go_to( t - 1 / 30 )
         end,
 
-        status = nil,
+        --status = nil,
 
         play = function ( ... )
+            vlc.playlist.pause() -- toggles??!!
             
-            local status = intf.editor.status
+            --[[local status = intf.editor.status
             if status == nil then
                 status = vlc.playlist.status()
             end
@@ -533,7 +547,7 @@ intf = {
             elseif status == 'paused' then
                 vlc.playlist.play()
                 intf.editor.status = "playing"
-            end
+            end]]
 
         end,
 
@@ -599,6 +613,8 @@ intf = {
 
             intf.editor.fill_scenes()
 
+            fcinema.save()
+
         end,
 
         add_scene = function ( start, stop, typ, desc, i )
@@ -630,6 +646,8 @@ intf = {
             data['stop'][i] = stop
             data['type'][i] = typ
             data['desc'][i] = desc
+
+            fcinema.save()
             
         end,
 
@@ -657,7 +675,47 @@ intf = {
         "sincronización manual <br>"..
         "...",
     },
-    
+    ------------------------- Interface utils ------------------------
+
+    items = {},
+
+    change_dlg = function ( ... )
+    -- Start a new dialog
+        for k,v in pairs( intf.items ) do
+            intf.del( k )
+        end
+        intf.items = nil
+        intf.items = {}
+        if not dlg then dlg = vlc.dialog( "Family Cinema (Beta)") end
+        collectgarbage()
+    end,
+
+    del = function ( str )
+    -- Delete widget from the interface
+        if intf.items[ str ] then
+            dlg:del_widget( intf.items[ str ] )
+            intf.items[ str ] = nil
+        end
+    end,
+
+    to_hour = function ( time, precision )
+        if type( time ) == "string" then return time end
+        local sec = time%60
+        local min = (time - sec )/60
+        --local hour = sec/3600
+        sec = math.floor( sec * precision ) / precision
+        if sec < 10 then sec = '0'..sec end
+        if min < 10 then min = ' '..min end
+        return min..':'..sec
+    end,
+
+    to_sec = function ( str )
+        if not str or str == '' then return end
+        if type( str ) == "number" then return str end
+        local min, sec = string.match( str, '(.+):(.+)' )
+        sec = min * 60 + sec
+        return sec
+    end,
 
     msg = function ( str )
         if intf.items["message"] then
@@ -715,7 +773,7 @@ intf = {
 
 config = {
     os = "",
-    version = "0.0",
+    version = "0.01",
     agent = "vlc",
     slash = '/',
     path = nil,
@@ -730,6 +788,7 @@ config = {
         
         os.setlocale( 'C' )
         json = require ("dkjson")
+        --http = require("socket")
         
         find_path()
         
@@ -756,6 +815,7 @@ edl = {
     stop  = {},
     action= {},
     active = false,
+    view_mode = false,
 
     activate = function( )
         if edl.active then
@@ -763,8 +823,10 @@ edl = {
             dlg:hide()
         else
             if not edl.from_user() then return end
+            vlc.playlist.play()
             vlc.var.add_callback( vlc.object.input(), "intf-event", edl.check )
             edl.active = true
+            edl.view_mode = true
             vlc.osd.message( "fcinema activado", 1, "botton", 1000000 )
             dlg:hide() 
         end
@@ -779,13 +841,16 @@ edl = {
                 table.insert( edl.stop, fcinema.data['stop'][k] )
             end
         end
-        return 1
+        vlc.msg.dbg( json.encode( edl.start ) .. json.encode( edl.stop ) )
+        return true
     end,
 
     deactivate = function()
         if edl.active then
             vlc.var.del_callback( vlc.object.input(), "intf-event", edl.check )
-            vlc.osd.message( "fcinema desactivado", 1, "botton", 1000000 )
+            if edl.view_mode then
+                vlc.osd.message( "fcinema desactivado", 1, "botton", 5000000 )
+            end
             edl.active = false
         end
     end,
@@ -836,7 +901,7 @@ fcinema = {
             data = fcinema.search_online( id, media.file.hash, media.file.bytesize, media.file.name )
             if data and data['new_version'] then
                 intf.loading.show()
-                intf.msg( "Nueva versión desponible " .. data['new_version'] )
+                intf.msg( "Nueva versión disponible " .. data['new_version'] )
                 return
             end
         end
@@ -899,9 +964,9 @@ fcinema = {
         params = params .. "action=feedback"
         params = params .. "&agent=" .. config.agent
         params = params .. "&version=" .. config.version
-        params = params .. "&name=".. name
-        params = params .. "&email=".. email
-        params = params .. "&idea=".. idea 
+        params = params .. "&name=".. name or ""
+        params = params .. "&email=".. email or ""
+        params = params .. "&idea=".. idea or ""
 
         local status, response = net.post( params, fcinema.api_url )
         if response then
@@ -1005,7 +1070,7 @@ sync = {
     auto = function ( ... )
         
         local borders = sync.get_borders()
-        local ref = { 34, 45, 67, 78, 85, 90}
+        local ref = { 34, 45, 67, 78, 85, 90} -- for dbg, then from fcinema.org
         -- TODO: fps issues when sync ( recognition and apply)
         local offset = sync.borders2offset( borders, ref )
         -- TODO: convert frames offset to ms offset
@@ -1014,17 +1079,37 @@ sync = {
     end,
 
     get_borders = function ( ... )
+        local borders = {}
         if config.os == "win" then
-            os.execute('mkdir "' .. path..'"')
+            local video_in="C:\\Users\\miguel\\Desktop\\shotdetect\\peli_con_offset.avi"
+            local vlc_path = '"C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe"'
+            local log = "C:\\Users\\miguel\\Desktop\\shotdetect\\testing.txt"
+            local video_out = "C:\\Users\\miguel\\Desktop\\shotdetect\\cmd.avi"
+            local CutDetectorPath = "C:\\Users\\miguel\\Desktop\\shotdetect\\bin\\CutDetector.exe"
+            local transcode = "--stop-time=200 --sout=#transcode{vcodec=WMV1,vb=50,scale=0.25,acodec=none}:std{access=file,mux=avi,dst="..video_out.."} "
+
+            vlc.msg.dbg(  vlc_path.." "..video_in .. transcode .. "-I dummy vlc://quit" )
+            os.execute( vlc_path.." "..video_in.." "..transcode.. " -I dummy vlc://quit")
+            vlc.msg.dbg( CutDetectorPath .. video_out .. log )
+            os.execute( CutDetectorPath.." "..video_out.." "..log )
+
+            local log = system.read( "C:\\Users\\miguel\\Desktop\\shotdetect\\testing.txt" )
+            --vlc.msg.dbg( log )
+            for frame, prob in string.gfind( log, "([^%s]+)%s+([^%s]+)%s+[01]") do
+                if prob+0 > 0.5 then
+                   table.insert( borders, frame )
+                end
+            end
         elseif config.os == "lin" then
-            os.execute("mkdir -p '" .. path.."'")
+            --os.execute()
         end
-        local borders = { 44, 55, 60, 77, 88, 100}
+        
+        vlc.msg.dbg( json.encode( borders ) )
         return borders
     end,
 
     borders2offset = function ( ours, ref )
-        
+    -- Calculate the offset from the scene change list
         local sum = {}
         local d
 
@@ -1038,7 +1123,7 @@ sync = {
                 end
             end
         end
-
+        -- Calculate the maximum
         local max = 0
         local offset
         for k, v in pairs( sum ) do
@@ -1047,6 +1132,7 @@ sync = {
                 offset = k
             end
         end
+
         vlc.msg.dbg( "Posibles offsets: " .. json.encode( sum ) )
         vlc.msg.dbg( "Offset automático calculado: " .. offset )
 
@@ -1058,6 +1144,7 @@ sync = {
     end,
 
     apply_offset = function ( offset )
+    -- Apply an offset 'offset' to all scenes
         if not type( offset ) == 'number' then return end
         for k,v in pairs( fcinema.data['start']) do
             fcinema.data['start'][k] = fcinema.data['start'][k] + offset
@@ -1092,7 +1179,10 @@ net = {
     http_req = function (host, port, request)
 
         intf.msg( "Conectando con el servidor: ".. intf.progress_bar( 40 ) )
-        
+        if not vlc.net then 
+            vlc.msg.dbg( 'Imposible to access "vlc.net"')
+            return
+        end
         local fd = vlc.net.connect_tcp(host, port)
 
         if not fd or fd == -1 then return false end
@@ -1173,6 +1263,7 @@ media = {
             intf.msg( intf.sty.err( "No input item") )
             return
         end
+        --vlc.playlist.pause() toggle??
         intf.msg( "Identificando película: ".. intf.progress_bar( 10 ) )
         media.get_file_info()
         intf.msg( "Identificando película: ".. intf.progress_bar( 20 ) )
@@ -1207,6 +1298,7 @@ media = {
         -- Get video file path, name, extension from input uri
         local item = media.input_item()
         local file = media.file
+        file.name = vlc.input.item():name()--?¿
         if not item then
             file.hasInput = false
             file.cleanName = nil
@@ -1253,10 +1345,10 @@ media = {
             return
         end
 
-        file.name, file.ext = string.match(file.completeName, '^([^/]-)%.?([^%.]*)$')
+        --file.name, file.ext = string.match(file.completeName, '^([^/]-)%.?([^%.]*)$')
         
         if file.ext == "part" then
-            file.name, file.ext = string.match(file.name, '^([^/]+)%.([^%.]+)$')
+            --file.name, file.ext = string.match(file.name, '^([^/]+)%.([^%.]+)$')
         end
         
         file.hasInput = true;
@@ -1434,7 +1526,7 @@ function find_path(  )
         if is_dir(v) and not is_dir( v..fcinema_path) then
             mkdir_p( v..fcinema_path)
         end
-        if file_touch( v ..fcinema_path..config.db) then
+        if file_touch( v ..fcinema_path..slash..config.db) then
             config.path = v ..fcinema_path .. slash
         end
     end
