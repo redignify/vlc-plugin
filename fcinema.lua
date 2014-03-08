@@ -602,7 +602,7 @@ intf = {
             intf.items['b_next'] = dlg:add_button( "Frame ->", intf.editor.nextframe, 10, 7, 1, 1)
             intf.items['b_previous'] = dlg:add_button( "<- Frame", intf.editor.previousframe, 8, 7, 1, 1)
             intf.items['b_play'] = dlg:add_button( "Play / Pause", intf.editor.play, 9, 7, 1, 1)
-            intf.items['len'] = dlg:add_text_input( "",9, 8, 1, 1 )
+            intf.items['len'] = dlg:add_text_input( "0.2",9, 8, 1, 1 )
 
             intf.items['space2'] = dlg:add_label( "", 9, 9, 1, 1 )
 
@@ -1177,12 +1177,12 @@ fcinema = {
         local file = config.path ..fcinema.data['id'] .. ".json"
         local data = json.encode( fcinema.data )
         system.write( file, data )
-        
-        if hash2id( config.db ) then return end
+        intf.msg( intf.sty.ok( 'Guardado con exito') )
+
+        if fcinema.hash2id( config.db ) then return end
         local index = system.read( config.path .. db ) or ""
         index = index .. media.file.hash ..';'..fcinema.data['id']..';0;\n'
         system.write( config.path .. db, index )
-        intf.msg( intf.sty.ok( 'Guardado con exito') )
     end,
 
     hash2id = function ( db )
