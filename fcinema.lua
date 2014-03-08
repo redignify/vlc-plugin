@@ -104,7 +104,7 @@ lang = {
     name_search = "Buscar por nombre",
     selec = "Seleccionar",
     help = "Ayuda",
-    offline = "Modo offline",
+    add_new = "Añadir nueva",
     advanced = "Avanzado",
     init = '<b><i>Inicio</i></b>',
     ------ Advenced -------------
@@ -161,7 +161,7 @@ intf = {
             intf.items['title'] = dlg:add_text_input( media.file.name, 1, 2, 6, 1 )
             intf.items['search'] = dlg:add_button( lang.name_search, intf.confirm_movie.search, 7, 2, 1, 1 )
             intf.items['choose'] = dlg:add_button( lang.selec, intf.confirm_movie.choose, 7, 11, 1, 1 )
-            intf.items['local'] = dlg:add_button( lang.offline, intf.confirm_movie.private, 1, 11, 1, 1 )
+            intf.items['local'] = dlg:add_button( lang.add_new, intf.confirm_movie.new.show, 1, 11, 1, 1 )
 
             intf.confirm_movie.fill_movies()
         end,
@@ -192,7 +192,38 @@ intf = {
             fcinema.search( id )
         end,
 
-        private = function ( ... )
+        new = {
+            show = function( ... )
+                local title = intf.items["title"]:get_text()
+                intf.change_dlg()
+
+                intf.items['l_name'] = dlg:add_label( "Importante: Asegurese de que la película realmente no esta", 1, 1, 5, 1 )
+                
+                intf.items['l_title'] = dlg:add_label( "Título: ", 1, 2, 2, 1 )
+                intf.items['title'] = dlg:add_text_input( title, 3, 2, 3, 1 )
+
+                intf.items['l_director'] = dlg:add_label( "Director: ", 1, 3, 2, 1 )
+                intf.items['director'] = dlg:add_text_input( "", 3, 3, 3, 1 )
+
+                intf.items["message"] = dlg:add_label("", 1, 4, 3, 1)
+
+                intf.items['b_send'] = dlg:add_button( "Añadir", intf.confirm_movie.new.add, 3, 5, 1, 1 )         
+                intf.items['b_back'] = dlg:add_button( lang.back, intf.confirm_movie.show, 2, 5, 1, 1)
+            end,
+
+            add = function ( ... )
+                if not fcinema.data then return end
+                fcinema.data['id'] = 'p'..media.file.hash
+                fcinema.data['title'] = intf.items["title"]:get_text()
+                local index = system.read( config.path .. config.offline_db )
+                index = index .. media.file.hash ..';'..fcinema.data['id']..';0;\n'
+                system.write( config.path .. config.offline_db, index )
+                intf.main.show()
+            end,
+        },
+        
+
+        --[[private = function ( ... )
             if not fcinema.data then return end
             fcinema.data['id'] = 'p'..media.file.hash
             fcinema.data['title'] = intf.items["title"]:get_text()
@@ -200,7 +231,7 @@ intf = {
             index = index .. media.file.hash ..';'..fcinema.data['id']..';0;\n'
             system.write( config.path .. config.offline_db, index )
             intf.main.show()
-        end,
+        end,]]
 
     }, 
 
@@ -246,11 +277,13 @@ intf = {
         label =  {
             ['v'] = 'Violencia',
             ['vp'] = 'Violencia extrema',
-            ['x'] = 'Sexo implicito',
             ['xp'] = 'Sexo explicito',
-            ['s'] = 'Desnudo implicito',
-            ['sp'] = 'Desnudo explicito',
-            ['cs'] = 'Comentario soez'
+            ['x'] = 'Sexo implicito',
+            ['sp'] = 'Desnudo',
+            ['cs'] = 'Comentario soez',
+            ['vo'] = 'Vocabulario',
+            ['dr'] = 'Consumo de drogas',
+            ['di'] = 'Discriminación',
         },
 
         watch_movie = function ( ... )
@@ -451,7 +484,6 @@ intf = {
 
         show = function ( ... )
 
-
             intf.change_dlg()
 
             intf.items['l_name'] = dlg:add_label( "Nombre (opcional): ", 1, 1, 2, 1 )
@@ -465,7 +497,7 @@ intf = {
 
             intf.items["message"] = dlg:add_label("", 1, 4, 3, 1)
 
-            intf.items['b_send'] = dlg:add_button( "Enviar feedback", intf.feedback.send, 3, 5, 1, 1 )         
+            intf.items['b_send'] = dlg:add_button( "Enviar feedback", intf.feedback.send, 3, 5, 1, 1 )
             intf.items['b_back'] = dlg:add_button( lang.back, intf.advanced.show, 2, 5, 1, 1)
 
         end,
@@ -490,8 +522,13 @@ intf = {
             intf.items['b_preview'] = dlg:add_button( lang.preview, intf.manual_sync.preview, 4, 2, 1, 1 )
             --intf.items['b_preview']:set_text( "kk")
             intf.items["message"] = dlg:add_label("", 1, 10, 7, 1)
-            intf.items['b_back'] = dlg:add_button( lang.back, intf.advanced.show, 10, 10, 1, 1)
+            intf.items['b_back'] = dlg:add_button( lang.back, intf.manual_sync.close, 10, 10, 1, 1)
 
+        end,
+
+        close = function ( ... )
+            edl.deactivate()
+            intf.advanced.show()
         end,
 
         preview = function ( ... )
@@ -569,7 +606,7 @@ intf = {
             intf.items['space2'] = dlg:add_label( "", 9, 9, 1, 1 )
 
             intf.items['b_load'] = dlg:add_button( lang.load, intf.editor.load, 8, 10, 1, 1)
-            intf.items['b_upload'] = dlg:add_button( lang.share, fcinema.upload, 9, 10, 1, 1)
+            intf.items['b_upload'] = dlg:add_button( lang.share, intf.editor.request_pass, 9, 10, 1, 1)
             --intf.items['b_save'] = dlg:add_button( "Guardar", fcinema.save, 9, 10, 1, 1)
             intf.items['b_back'] = dlg:add_button( lang.back, intf.editor.close, 10, 10, 1, 1)
             
@@ -577,14 +614,44 @@ intf = {
             collectgarbage()
         end,
 
-        --[[upload = function ( ... )
+        request_pass = function ( ... )
             intf.change_dlg()
-            intf.items['l_token'] = dlg:add_label( "Introduce tu token", 1, 1, 1, 1 )
-            intf.items['token'] = dlg:add_text_input( config.options.token , 2, 1, 3, 1 )
-            intf.items[]
-            fcinema.upload()
-            intf.editor.show()
+            intf.items['l_name'] = dlg:add_label( "Nombre usuario: ", 1, 1, 1, 1 )
+            intf.items['i_name'] = dlg:add_text_input( config.options.name, 2, 1, 1, 1 )
+            intf.items['l_pass'] = dlg:add_label( "Contraseña: ", 1, 2, 1, 1 )
+            intf.items['i_pass'] = dlg:add_password( "", 2, 2, 1, 1 )
+
+            intf.items['l_new_user'] = dlg:add_label( "¿Aun no eres usuario? <a href='http://www.fcinema.org/'>Crear una cuenta</a>", 1, 3, 2, 1 )
+            --intf.items['b_new_user'] = dlg:add_button( "Crear cuenta", intf.editor.new_user, 2, 3, 1, 1)
+            intf.items['b_upload'] = dlg:add_button( "Compartir", intf.editor.upload, 2, 4, 1, 1)
+            intf.items['b_cancel'] = dlg:add_button( "Cancelar", intf.editor.show, 1, 4, 1, 1)
+            
+        end,
+
+        --[[new_user = function ( ... )
+            intf.items['l_name'] = dlg:add_label( "Nombre usuario: ", 1, 1, 1, 1 )
+            intf.items['i_name'] = dlg:add_text_input( config.options.name, 2, 1, 1, 1 )
+
+            intf.items['l_pass'] = dlg:add_label( "Contraseña: ", 1, 2, 1, 1 )
+            intf.items['i_pass'] = dlg:add_password( "", 2, 2, 1, 1 )
+
+            intf.items['l_pass2'] = dlg:add_label( "Confirme contraseña: ", 1, 3, 1, 1 )
+            intf.items['i_pass2'] = dlg:add_password( "", 2, 3, 1, 1 )
+
+            intf.items['l_email'] = dlg:add_label( "Correo electrónico ", 1, 4, 1, 1 )
+            intf.items['i_email'] = dlg:add_password( "", 1, 4, 1, 1 )
+
+            intf.items['b_new_user'] = dlg:add_button( "Crear cuenta", intf.editor.new_user, 2, 3, 1, 1)
         end,]]--
+
+        upload = function ( ... )
+            local pass = intf.items['i_pass']:get_text()
+            local user = intf.items['i_name']:get_text()
+            config.options.name = user
+            fcinema.upload( user, pass )
+            intf.main.show()
+            intf.msg( intf.sty.ok( "Gracias por colaborar con fcinema") )
+        end,
 
         load = function ( ... )
             local path = intf.items['Desc']:get_text()
@@ -867,7 +934,8 @@ config = {
     db = "fcinema.txt",
     options = {
         lang = "esp", --os.getenv("LANG"),
-        token = "1234", --f6ads5f43d1f6v532fsfvadgvh5vdf6g8fdgads2dv64cv65sdf6z54v1cx3v15dv3cx2v1zx
+        --token = "1234", --f6ads5f43d1f6v532fsfvadgvh5vdf6g8fdgads2dv64cv65sdf6z54v1cx3v15dv3cx2v1zx
+        name = "",
     },
 
     load = function ( ... )
@@ -1015,7 +1083,7 @@ fcinema = {
         end
         
     -- Parse received data
-        if not data or data['error'] then
+        if not data or data['Error'] then
             intf.confirm_movie.show()
             intf.msg( "Lo sentimos no hay información disponible")
         elseif data['title'] then
@@ -1075,15 +1143,16 @@ fcinema = {
         end
     end,
 
-    upload = function (  )
+    upload = function ( user, pass  )
         local data = json.encode( fcinema.data )
         local params = ""
         params = params .. "action=modify"
         params = params .. "&agent=" .. config.agent
         params = params .. "&version=" .. config.version
-        params = params .. "&imdb_code=" .. fcinema.data['id']
+--        params = params .. "&imdb_code=" .. fcinema.data['id']
         params = params .. "&data=".. data
-        params = params .. "&token=" .. config.options.token
+        params = params .. "&username=" .. user or ""
+        params = params .. "&password=" .. pass or ""
                 
         local status, response = net.post( params, fcinema.api_url )
         intf.msg('')
@@ -1371,7 +1440,7 @@ media = {
         protocol = nil,
         cleanName = nil,
         dir = nil,
-        hash = nil,
+        hash = 'nil',
         bytesize = nil,
         completeName = nil,
     },
@@ -1480,7 +1549,7 @@ media = {
 
     get_hash = function()
     -- Compute hash according to opensub standards    
-            
+        if true then return false end
         -- Get input and prepare stuff
         local item = media.input_item()
         
