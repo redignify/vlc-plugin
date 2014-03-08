@@ -216,6 +216,7 @@ intf = {
                 fcinema.data['id'] = 'p'..media.file.hash
                 fcinema.data['title'] = intf.items["title"]:get_text()
                 local index = system.read( config.path .. config.offline_db )
+                index = string.gsub( index, media.file.hash .. ';(.-);(.-);', '' )
                 index = index .. media.file.hash ..';'..fcinema.data['id']..';0;\n'
                 system.write( config.path .. config.offline_db, index )
                 intf.main.show()
@@ -1056,6 +1057,7 @@ fcinema = {
             vlc.msg.dbg( "Looking files in offline mode")
             id = fcinema.hash2id( config.offline_db )
             if id then
+                vlc.msg.dbg( "ID finded in offline cache! " .. id )
                 data = fcinema.read( config.path ..  id .. '.json')
             end
         end
@@ -1078,6 +1080,7 @@ fcinema = {
             vlc.msg.dbg( "Looking on local cache")
             id = fcinema.hash2id( config.db )
             if id then
+                vlc.msg.dbg( "ID finded in local cache! " .. id )
                 data = fcinema.read( config.path ..  id .. '.json')
             end
         end
@@ -1174,7 +1177,8 @@ fcinema = {
         local file = config.path ..fcinema.data['id'] .. ".json"
         local data = json.encode( fcinema.data )
         system.write( file, data )
-
+        
+        if hash2id( config.db ) then return end
         local index = system.read( config.path .. db ) or ""
         index = index .. media.file.hash ..';'..fcinema.data['id']..';0;\n'
         system.write( config.path .. db, index )
@@ -1187,10 +1191,10 @@ fcinema = {
         if data then
             local id, offset = string.match( data, media.file.hash .. ';(.-);(.-);' )
             if id then
-                vlc.msg.dbg( "ID finded! " .. id )
                 return id
             end
         end
+        return false
     end,
 
     read = function ( file )
@@ -1440,7 +1444,7 @@ media = {
         protocol = nil,
         cleanName = nil,
         dir = nil,
-        hash = 'nil',
+        hash = 'nohash',
         bytesize = nil,
         completeName = nil,
     },
@@ -1548,8 +1552,8 @@ media = {
 
 
     get_hash = function()
-    -- Compute hash according to opensub standards    
-        if true then return false end
+    -- Compute hash according to opensub standards
+
         -- Get input and prepare stuff
         local item = media.input_item()
         
