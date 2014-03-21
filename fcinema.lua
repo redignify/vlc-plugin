@@ -127,7 +127,7 @@ lang = {
     preview = "Previsualizar",
     add_scene = "Añadir escena",
     edit_selected = "Editar selección",
-    load = "Base datos local",
+    load = "Recientes",
     share = "Compartir en fcinema",
     invalid_data = "Error: " .. " No puede haber campos vacios",
     now = "Ahora",
@@ -555,14 +555,16 @@ intf = {
         show = function ( ... )
             intf.change_dlg()
             intf.manual_sync.sync_scene = 1
-            for k,v in pairs( fcinema.data['type'] ) do
-                if v == 'syn' then
-                    intf.manual_sync.scene = k
-                    break
+            if fcinema.data['type'] then
+                for k,v in pairs( fcinema.data['type'] ) do
+                    if v == 'syn' then
+                        intf.manual_sync.scene = k
+                        break
+                    end
                 end
             end
             
-            intf.items['l_now'] = dlg:add_label( '<b>Haz click cuando empiece la escena de:</b>', 1, 1, 3, 1 )
+            intf.items['l_now'] = dlg:add_label( '<b>Haz click cuando empiece la escena de: </b>', 1, 1, 3, 1 )
             intf.items['b_offset'] = dlg:add_button( lang.now, intf.manual_sync.now, 4, 2, 1, 1 )
             intf.items['l_description'] = dlg:add_label( fcinema.data['desc'][intf.manual_sync.scene] or '', 1, 2, 3, 1 )
             --intf.items['l_offset'] = dlg:add_label( lang.insert_offset, 1, 1, 3, 1 )
@@ -571,10 +573,20 @@ intf = {
             
             intf.items['l_preview'] = dlg:add_label( "Puedes previsualizar el corte", 1, 3, 2, 1 )
             intf.items['b_preview'] = dlg:add_button( lang.preview, intf.manual_sync.preview, 3, 3, 1, 1 )
-            --intf.items['l_description'] = dlg:add_label( fcinema.data['desc'][intf.manual_sync.scene], 1, 5, 3, 1 )
-            --intf.items['b_preview']:set_text( "kk")
+
+            intf.items['b_next2'] = dlg:add_button( ">>", intf.manual_sync.jump_fordward_2, 11, 7, 1, 1)
+            intf.items['b_next'] = dlg:add_button( ">", intf.manual_sync.jump_fordward_1, 10, 7, 1, 1)
+
+
+            intf.items['b_back2'] = dlg:add_button( "<<", intf.manual_sync.jump_backward_2, 8, 7, 1, 1)
+            intf.items['b_back'] = dlg:add_button( "<", intf.manual_sync.jump_backward_1, 9, 7, 1, 1)
+
+            --intf.items['b_previous'] = dlg:add_button( "<- Frame", intf.editor.previousframe, 8, 7, 1, 1)
+            --intf.items['b_play'] = dlg:add_button( "Play / Pause", intf.editor.play, 9, 7, 1, 1)
+            --intf.items['len'] = dlg:add_text_input( "0.2",9, 8, 1, 1 )
+
             intf.items["message"] = dlg:add_label("", 1, 10, 7, 1)
-            intf.items['b_back'] = dlg:add_button( 'Ok', intf.manual_sync.close, 10, 10, 1, 1)
+            intf.items['b_ok'] = dlg:add_button( 'Ok', intf.manual_sync.close, 5, 10, 1, 1)
 
         end,
 
@@ -583,9 +595,16 @@ intf = {
             intf.advanced.show()
         end,
 
+        jump_backward_1 = function() media.jump( -0.3 ) end,
+        jump_fordward_1 = function() media.jump( 0.3 ) end,
+        jump_backward_2 = function() media.jump( -2 ) end,
+        jump_fordward_2 = function() media.jump( 2 ) end,
+
         now = function ( ... )
-            t = media.get_time()
+            local t = media.get_time()
             if not t then return end
+            vlc.msg.err("[Fcinema] Current time = " ..t )
+            if true then return end
             local offset = t - fcinema.data['start'][intf.manual_sync.scene]
             if sync.apply_offset( offset ) then
                 intf.msg( "Offset de " .. offset .. "s aplicado")
@@ -677,7 +696,7 @@ intf = {
         request_pass = function ( ... )
             
             if string.match( fcinema.data['id'], 'p' ) then
-                intf.msg( "Imposible compartir ficheros locales")
+                intf.msg( intf.sty.err("Imposible").." compartir ficheros locales")
                 return
             end
 
@@ -730,7 +749,7 @@ intf = {
         nextframe = function ( ... )
             --TODO: change this
             local len = intf.items['len']:get_text()
-            t = media.get_time()
+            local t = media.get_time()
             if not t then return end
             media.go_to( t + len )
         end,
@@ -738,7 +757,7 @@ intf = {
         previousframe = function ( ... )
             --TODO: change this
             local len = intf.items['len']:get_text()
-            t = media.get_time()
+            local t = media.get_time()
             if not t then return end
             media.go_to( t - len )
         end,
@@ -1078,7 +1097,7 @@ edl = {
 
     check = function( )
 
-        t = media.get_time()
+        local t = media.get_time()
 
         if not t then return end
 
@@ -1087,7 +1106,7 @@ edl = {
         for i, stop in ipairs( edl.stop ) do
             if t < stop - 1 and t > edl.start[i] - 0.175 then
                 -- TODO: allow different actions
-                media.go_to ( stop )
+                media.go_to( stop )
                 return
             end
         end
@@ -1113,7 +1132,7 @@ fcinema = {
         vlc.msg.dbg( "[Fcinema] Looking files in offline mode")
         if not id then
             id = fcinema.hash2id( config.offline_db )
-            vlc.msg.dbg( "[Fcinema] ID finded in offline cache! " .. id )
+            if id then vlc.msg.dbg( "[Fcinema] ID finded in offline cache! " .. id ) end
         end
         if id then
             data = fcinema.read( config.path ..  id .. '.json')
@@ -1259,7 +1278,6 @@ fcinema = {
                 return id
             end
         end
-        return false
     end,
 
     read = function ( file )
@@ -1536,6 +1554,25 @@ media = {
         --Set "position" as it crash if "time" is set directly
         local duration = vlc.input.item():duration()
         vlc.var.set( vlc.object.input(), "position", time / duration)
+    end,
+
+    jump = function ( diff )
+        local t = media.get_time()
+        if not t then return end
+        vlc.msg.dbg("[Fcinema] Jumping "..diff.."s from "..t.."s.")
+        vlc.var.set( vlc.object.input(), "time", t + diff )
+        vlc.msg.err( '[Fcinema] Jumped to '..t+diff..' arrived at '..media.get_time())
+        --if media.get_time() + diff > t then end
+        --media.go_to( t + diff )
+
+        --local duration = vlc.input.item():duration()
+        --local position = vlc.var.get( vlc.object.input(), "position")
+
+        --vlc.var.set( vlc.object.input(), "position", position +  ( diff / duration ) )
+
+        --local position2 = vlc.var.get( vlc.object.input(), "position")
+        --vlc.msg.err( "[Fcinema] Jumped difference ".. position/duration - position2/duration )
+
     end,
 
     get_time = function()
