@@ -104,10 +104,15 @@ lang = {
     view_movie = "Ver película",
     name_search = "Buscar por nombre",
     selec = "Seleccionar",
-    help = "Ayuda",
+    b_help = "Ayuda",
     add_new = "Añadir nueva",
     advanced = "Avanzado",
     init = '<b><i>Inicio</i></b>',
+    help = "Ayuda sobre como usar fcinema <br>" ..
+        "un poco de about y thanks a opensub ... <br>"..
+        "película erronea <br>" ..
+        "sincronización manual <br>"..
+        "...",
     ------ Advenced -------------
     l_editor = "Crea tu propia lista de escenas: ",
     b_editor = "Editor",
@@ -123,6 +128,7 @@ lang = {
     back = "Atras",
     msg_donate = "Todo sobre como ayudar en en <a href='http://www.fcinema.org/'>fcinema.org</a>",
     language_changed = "Idioma cambiado",
+    b_change_lang = "Cambiar idioma",
     --------- Editor -----------------
     preview = "Previsualizar",
     add_scene = "Añadir escena",
@@ -155,19 +161,19 @@ intf = {
 
     --------------------------- Selecting movie interface --------------------------------
 
-    confirm_movie = {
+    select_movie = {
         show = function ( ... )
             intf.change_dlg()
             intf.items['header'] = dlg:add_label( lang.which_movie, 1, 1, 4, 1 )
             intf.items['list'] = dlg:add_list( 1, 3, 7, 7 )
             intf.items["message"] = dlg:add_label("", 1, 10, 7, 1)
-            intf.items['title'] = dlg:add_text_input( media.file.name, 1, 2, 6, 1 )
-            intf.items['b_search'] = dlg:add_button( lang.name_search, intf.confirm_movie.search, 7, 2, 1, 1 )
-            intf.items['b_choose'] = dlg:add_button( lang.selec, intf.confirm_movie.choose, 7, 11, 1, 1 )
-            intf.items['b_load'] = dlg:add_button( lang.load, intf.confirm_movie.load, 2, 11, 1, 1)
-            intf.items['local'] = dlg:add_button( lang.add_new, intf.confirm_movie.new.show, 1, 11, 1, 1 )
+            intf.items['title'] = dlg:add_text_input( media.file.cleanName, 1, 2, 6, 1 )
+            intf.items['b_search'] = dlg:add_button( lang.name_search, intf.select_movie.search, 7, 2, 1, 1 )
+            intf.items['b_choose'] = dlg:add_button( lang.selec, intf.select_movie.choose, 7, 11, 1, 1 )
+            intf.items['b_load'] = dlg:add_button( lang.load, intf.select_movie.load, 2, 11, 1, 1)
+            intf.items['local'] = dlg:add_button( lang.add_new, intf.select_movie.new.show, 1, 11, 1, 1 )
 
-            intf.confirm_movie.fill_movies()
+            intf.select_movie.fill_movies()
         end,
 
         fill_movies = function()
@@ -222,7 +228,7 @@ intf = {
                 fcinema.read( v )
             end
             fcinema.data = data
-            intf.confirm_movie.show()
+            intf.select_movie.show()
         end,
 
         choose = function ( ... )
@@ -241,7 +247,7 @@ intf = {
                 local title = intf.items["title"]:get_text()
                 intf.change_dlg()
 
-                intf.items['l_name'] = dlg:add_label( "Importante: Asegurese de que la película realmente no esta", 1, 1, 5, 1 )
+                intf.items['l_name'] = dlg:add_label( intf.sty.err("Importante:").." Asegurese de que la película realmente no esta", 1, 1, 5, 1 )
                 
                 intf.items['l_title'] = dlg:add_label( "Título: ", 1, 2, 2, 1 )
                 intf.items['title'] = dlg:add_text_input( title, 3, 2, 3, 1 )
@@ -251,8 +257,8 @@ intf = {
 
                 intf.items["message"] = dlg:add_label("", 1, 4, 3, 1)
 
-                intf.items['b_send'] = dlg:add_button( "Añadir", intf.confirm_movie.new.add, 3, 5, 1, 1 )         
-                intf.items['b_back'] = dlg:add_button( lang.back, intf.confirm_movie.show, 2, 5, 1, 1)
+                intf.items['b_send'] = dlg:add_button( "Añadir", intf.select_movie.new.add, 5, 5, 1, 1 )         
+                intf.items['b_back'] = dlg:add_button( lang.back, intf.select_movie.show, 1, 5, 1, 1)
             end,
 
             add = function ( ... )
@@ -289,7 +295,7 @@ intf = {
             intf.items["pg"] = dlg:add_label( fcinema.data['pg'] or '', 3, 2, 1, 1)
 
             intf.items['advanced'] = dlg:add_button( lang.advanced, intf.advanced.show, 3, 100, 1, 1)
-            intf.items['help'] = dlg:add_button( lang.help, intf.help.show, 1, 100, 2, 1)
+            intf.items['help'] = dlg:add_button( lang.b_help, intf.help.show, 1, 100, 2, 1)
             intf.items['watch'] = dlg:add_button( lang.view_movie, intf.main.watch_movie, 10, 100, 2, 1)
 
             intf.items["message"] = dlg:add_label("", 1, 99, 10, 1)
@@ -473,7 +479,7 @@ intf = {
 
             intf.items['b_auto_sync'] = dlg:add_button( lang.b_auto_sync, sync.auto, 4, 7, 1, 1 )
 
-            intf.items['change_lang'] = dlg:add_button( "change lang", intf.advanced.lang, 4, 8, 1, 1 )
+            intf.items['b_change_lang'] = dlg:add_button( lang.b_change_lang, intf.advanced.lang, 4, 8, 1, 1 )
 
             intf.items['language'] = dlg:add_dropdown( 3, 8, 1, 1)
             intf.items['language']:add_value( "English", 1 )
@@ -496,6 +502,7 @@ intf = {
         end,
 
         lang = function ( ... )
+            system.write( config.path .. "saved.json", json.encode(lang) )
             local lang_id = intf.items['language']:get_value()
             if lang_id == 1 then
                 config.options.lang = "eng"
@@ -504,15 +511,15 @@ intf = {
                 config.options.lang = "esp"
                 config.load_lang( "esp" )
             end
-            intf.msg( lang.language_changed )
-            --system.write( config.path .. "eng.json", json.encode(lang) )
+            intf.advanced.show()
+            --intf.msg( lang.language_changed )
         end,
 
         bad_hash = function ( ... )
             --fcinema.data = nil
             --local data = fcinema.search_online( nil, nil, nil, media.file.name )
             --fcinema.data = data
-            intf.confirm_movie.show()
+            intf.select_movie.show()
         end,
     },
 
@@ -574,12 +581,12 @@ intf = {
             intf.items['l_preview'] = dlg:add_label( "Puedes previsualizar el corte", 1, 3, 2, 1 )
             intf.items['b_preview'] = dlg:add_button( lang.preview, intf.manual_sync.preview, 3, 3, 1, 1 )
 
-            intf.items['b_next2'] = dlg:add_button( ">>", intf.manual_sync.jump_fordward_2, 11, 7, 1, 1)
-            intf.items['b_next'] = dlg:add_button( ">", intf.manual_sync.jump_fordward_1, 10, 7, 1, 1)
+            intf.items['b_next2'] = dlg:add_button( ">>", intf.manual_sync.jump_fordward_2, 4, 7, 1, 1)
+            intf.items['b_next'] = dlg:add_button( ">", intf.manual_sync.jump_fordward_1, 3, 7, 1, 1)
 
 
-            intf.items['b_back2'] = dlg:add_button( "<<", intf.manual_sync.jump_backward_2, 8, 7, 1, 1)
-            intf.items['b_back'] = dlg:add_button( "<", intf.manual_sync.jump_backward_1, 9, 7, 1, 1)
+            intf.items['b_back2'] = dlg:add_button( "<<", intf.manual_sync.jump_backward_2, 1, 7, 1, 1)
+            intf.items['b_back'] = dlg:add_button( "<", intf.manual_sync.jump_backward_1, 2, 7, 1, 1)
 
             --intf.items['b_previous'] = dlg:add_button( "<- Frame", intf.editor.previousframe, 8, 7, 1, 1)
             --intf.items['b_play'] = dlg:add_button( "Play / Pause", intf.editor.play, 9, 7, 1, 1)
@@ -695,6 +702,7 @@ intf = {
 
         request_pass = function ( ... )
             
+            edl.deactivate()
             if string.match( fcinema.data['id'], 'p' ) then
                 intf.msg( intf.sty.err("Imposible").." compartir ficheros locales")
                 return
@@ -709,7 +717,7 @@ intf = {
             intf.items['l_new_user'] = dlg:add_label( "¿Aun no eres usuario? <a href='http://www.fcinema.org/'>Crear una cuenta</a>", 1, 3, 2, 1 )
             --intf.items['b_new_user'] = dlg:add_button( "Crear cuenta", intf.editor.new_user, 2, 3, 1, 1)
             intf.items['b_upload'] = dlg:add_button( "Compartir", intf.editor.upload, 2, 4, 1, 1)
-            intf.items['b_cancel'] = dlg:add_button( "Cancelar", intf.editor.show, 1, 4, 1, 1)
+            intf.items['b_cancel'] = dlg:add_button( lang.cancel, intf.editor.show, 1, 4, 1, 1)
             
         end,
 
@@ -732,6 +740,11 @@ intf = {
         upload = function ( ... )
             local pass = intf.items['i_pass']:get_text()
             local user = intf.items['i_name']:get_text()
+            local borders, prob = sync.get_borders()
+            if borders then
+                -- FIXME: this are the borders for this movie, previously edited scenes could have other borders
+                fcinema.data['borders'] = borders
+            end
             config.options.name = user
             if fcinema.upload( user, pass ) then
                 intf.editor.show()
@@ -891,17 +904,11 @@ intf = {
     help = {
         show = function (  )
             intf.change_dlg()
-            intf.items['help'] = dlg:add_html( intf.help.text, 1, 1, 4, 1)
+            intf.items['help'] = dlg:add_html( lang.help, 1, 1, 4, 1)
             intf.items['trick'] = dlg:add_label(string.rep ("&nbsp;", 100), 1, 2, 3, 1)
             intf.items['back'] = dlg:add_button( "Atras", intf.main.show, 4, 2, 1, 1)
             collectgarbage()
         end,
-
-        text = "Ayuda sobre como usar fcinema <br>" ..
-        "un poco de about y thanks a opensub ... <br>"..
-        "película erronea <br>" ..
-        "sincronización manual <br>"..
-        "...",
     },
     ------------------------- Interface utils ------------------------
 
@@ -1015,10 +1022,11 @@ config = {
 
     load = function ( ... )
         
-        os.setlocale( 'C' )
+        os.setlocale( 'C' ) -- Avoid problems with local decimal separators (specially in json)
         json = require ("dkjson")
         --http = require("socket")
-        
+
+        --local system_lang = os.getenv("LANG") eg. en_US.UTF-8 
         find_path()
 
         local data = system.read( config.path .. 'config.json')
@@ -1028,6 +1036,7 @@ config = {
                 config.options = options
             end
         end
+
         if config.options.lang ~= "esp" then
             config.load_lang( config.options.lang )
         end
@@ -1036,7 +1045,9 @@ config = {
     load_lang = function ( language )
         local data = fcinema.read( config.path .. language .. ".json" )
         if data then
-            lang = data
+            for k,v in pairs(data) do
+                lang[k] = data[k]
+            end
         end
     end,
 
@@ -1161,7 +1172,7 @@ fcinema = {
         
     -- Parse received data
         if not data or data['Error'] then
-            intf.confirm_movie.show()
+            intf.select_movie.show()
             intf.msg( "Lo sentimos no hay información disponible")
             vlc.msg.dbg( "[Fcinema] No info, displaying searching dialog")
         elseif data['title'] then
@@ -1171,7 +1182,7 @@ fcinema = {
         elseif data['titles'] then
             vlc.msg.dbg( "[Fcinema] Readed: " .. json.encode( data ) .."\n" )
             fcinema.data = data
-            intf.confirm_movie.show()
+            intf.select_movie.show()
         end
                 
         return true
@@ -1294,7 +1305,7 @@ fcinema = {
 system = {
 
     read = function ( file )
-        vlc.msg.dbg( '[Fcinema] Reading data from file: '..file )
+        vlc.msg.dbg( '[Fcinema] Reading data from file: '.. file )
         local tmpFile = io.open( file, "rb")
         if not tmpFile then return false end
         local data = tmpFile:read("*all")
@@ -1323,31 +1334,36 @@ sync = {
 
     auto = function ( ... )
         
-        local borders = sync.get_borders()
-        local ref = { 34, 45, 67, 78, 85, 90} -- for dbg, then from fcinema.org
+        local borders, prob = sync.get_borders()
+        local ref = fcinema.data['borders'] -- FIXME: for dbg, then from fcinema.org
+        if not ref then 
+            intf.msg( "Imposible sincronizar automáticamente, puedes utilizar la sincronización manual")
+            return
+        end
         -- TODO: fps issues when sync ( recognition and apply)
         local offset = sync.borders2offset( borders, ref )
         -- TODO: convert frames offset to ms offset
-        sync.apply_offset( offset )
+        local info = vlc.input.item():info()
+        local fps
+        for k,v in pairs(info) do
+            if v['Frame rate'] then
+                fps = v['Frame rate']
+                break
+            end
+        end
+        sync.apply_offset( offset/fps )
 
     end,
 
     get_borders = function ( ... )
         local borders = {}
         if config.os == "win" then
-            local video_in="C:\\Users\\miguel\\Desktop\\shotdetect\\peli_con_offset.avi"
-            local vlc_path = '"C:\\Program Files (x86)\\VideoLAN\\VLC\\vlc.exe"'
-            local log = "C:\\Users\\miguel\\Desktop\\shotdetect\\testing.txt"
-            local video_out = "C:\\Users\\miguel\\Desktop\\shotdetect\\cmd.avi"
-            local CutDetectorPath = "C:\\Users\\miguel\\Desktop\\shotdetect\\bin\\CutDetector.exe"
-            local transcode = "--stop-time=200 --sout=#transcode{vcodec=WMV1,vb=50,scale=0.25,acodec=none}:std{access=file,mux=avi,dst="..video_out.."} "
+            local bacht_file = '"C:\\Program Files (x86)\\VideoLAN\\VLC\\lua\\extensions\\get_borders\\getcuts.bat"'
+            local cmd = bacht_file.." "..media.file.uri.." "..config.path
+            vlc.msg.dbg("[Fcinema] Executing ".. cmd )
+            os.execute( cmd )
 
-            vlc.msg.dbg(  vlc_path.." "..video_in .. transcode .. "-I dummy vlc://quit" )
-            os.execute( vlc_path.." "..video_in.." "..transcode.. " -I dummy vlc://quit")
-            vlc.msg.dbg( CutDetectorPath .. video_out .. log )
-            os.execute( CutDetectorPath.." "..video_out.." "..log )
-
-            local log = system.read( "C:\\Users\\miguel\\Desktop\\shotdetect\\testing.txt" )
+            local log = system.read( config.path.."cuts.log" )
             --vlc.msg.dbg( log )
             for frame, prob in string.gfind( log, "([^%s]+)%s+([^%s]+)%s+[01]") do
                 if prob+0 > 0.5 then
@@ -1359,7 +1375,7 @@ sync = {
         end
         
         vlc.msg.dbg( '[Fcinema] Detected borders are '..json.encode( borders ) )
-        return borders
+        return borders, prob
     end,
 
     borders2offset = function ( ours, ref )
@@ -1377,6 +1393,7 @@ sync = {
                 end
             end
         end
+
         -- Calculate the maximum
         local max = 0
         local offset
@@ -1386,9 +1403,9 @@ sync = {
                 offset = k
             end
         end
-
+        offset = -offset
         vlc.msg.dbg( "[Fcinema] Posibles offsets: " .. json.encode( sum ) )
-        vlc.msg.dbg( "[Fcinema] Offset automático calculado: " .. offset )
+        vlc.msg.dbg( "[Fcinema] Offset automático calculado: " .. offset .." con "..max.." coincidencias")
 
         return offset
     end,
@@ -1404,6 +1421,7 @@ sync = {
             fcinema.data['start'][k] = fcinema.data['start'][k] + offset
             fcinema.data['stop'][k] = fcinema.data['stop'][k] + offset
         end
+        intf.msg( "Sincronización de "..offset.."s aplicada" )
         return true
     end,
     
@@ -1636,10 +1654,10 @@ media = {
             return
         end
 
-        --file.name, file.ext = string.match(file.completeName, '^([^/]-)%.?([^%.]*)$')
+        file.name, file.ext = string.match(file.completeName, '^([^/]-)%.?([^%.]*)$')
         
         if file.ext == "part" then
-            --file.name, file.ext = string.match(file.name, '^([^/]+)%.([^%.]+)$')
+            file.name, file.ext = string.match(file.name, '^([^/]+)%.([^%.]+)$')
         end
         
         file.hasInput = true;
@@ -1805,22 +1823,17 @@ function find_path(  )
         slash = "/"
     end
 
---Posible paths for config
-    
-    --[[local paths = {
-        vlc.config.datadir(), --: Get the VLC data directory.
+--Posible paths for config (in order of priority)
+    local paths = {
         vlc.config.userdatadir(), --: Get the user's VLC data directory.
+        vlc.config.datadir(), --: Get the VLC data directory.
         vlc.config.homedir(), --: Get the user's home directory.
         vlc.config.configdir(), --: Get the user's VLC config directory.
         vlc.config.cachedir() --: Get the user's VLC cache directory.
-    }]]
-    local userdatadir = vlc.config.userdatadir()
-    local datadir = vlc.config.datadir()
+    }
 
     local path_generic = {"lua", "extensions", "userdata", "fcinema"}
     local fcinema_path = slash..table.concat(path_generic, slash)
-
-    local paths = {userdatadir, datadir}
 
 --Check if cache is somewhere out there
     for k,v in pairs( paths ) do
