@@ -90,6 +90,10 @@ function trigger_menu(dlg_id)
     collectgarbage() --~ !important    
 end
 ]]--
+function meta_changed( ... )
+    -- body
+end
+
 function input_changed()
     --TODO: On DVD input change constantly
     --edl.deactivate()
@@ -98,6 +102,23 @@ function input_changed()
 end
 
 ---------------------------- LANGUAGE -------------------------------------
+
+style = {
+    err = function ( str )
+        if not str then return end
+        return "<span style='color:#B23'><b>"..str.."</b></span> "
+    end,
+
+    ok = function ( str )
+        if not str then return end
+        return "<span style='color:#181'><b>"..str.."</b></span> "
+    end,
+
+    tit = function ( str )
+        if not str then return end
+        return "<center><h1>"..str.."</h1></center>"
+    end
+}
 
 lang = {
     which_movie = "<b><h3><center>¿Que película estas viendo?</center></h3></b>",
@@ -127,15 +148,14 @@ lang = {
     b_auto_sync = "Auto sync",
     back = "Atras",
     msg_donate = "Todo sobre como ayudar en en <a href='http://www.fcinema.org/'>fcinema.org</a>",
-    language_changed = "Idioma cambiado",
     b_change_lang = "Cambiar idioma",
     --------- Editor -----------------
     preview = "Previsualizar",
     add_scene = "Añadir escena",
     edit_selected = "Editar selección",
-    load = "Recientes",
+    cache = "Recientes",
     share = "Compartir en fcinema",
-    invalid_data = "Error: " .. " No puede haber campos vacios",
+    invalid_data = style.err("Error: ") .. " No puede haber campos vacios",
     now = "Ahora",
     ---------- Manual sync ------------
     insert_offset = "Introduce los segundos de desfase: ",
@@ -170,7 +190,7 @@ intf = {
             intf.items['title'] = dlg:add_text_input( media.file.cleanName, 1, 2, 6, 1 )
             intf.items['b_search'] = dlg:add_button( lang.name_search, intf.select_movie.search, 7, 2, 1, 1 )
             intf.items['b_choose'] = dlg:add_button( lang.selec, intf.select_movie.choose, 7, 11, 1, 1 )
-            intf.items['b_load'] = dlg:add_button( lang.load, intf.select_movie.load, 2, 11, 1, 1)
+            intf.items['b_cache'] = dlg:add_button( lang.cache, intf.select_movie.cache, 2, 11, 1, 1)
             intf.items['local'] = dlg:add_button( lang.add_new, intf.select_movie.new.show, 1, 11, 1, 1 )
 
             intf.select_movie.fill_movies()
@@ -186,24 +206,7 @@ intf = {
             end
         end,
 
-        load = function ( ... )
-            --local path = intf.items['title']:get_text()
-            --[[local data = fcinema.read( path )
-            if data then
-                fcinema.data = nil
-                fcinema.data = data
-                intf.editor.fill_scenes()
-                intf.msg( "Fichero leido con exito")
-            else]
-
-            local dir_list = vlc.net.opendir( config.path )
-            for k,v in pairs( dir_list ) do
-                local datafcinema.read( config.path .. v )
-
-                if v ~= '.' and v ~= '..' and v ~= 'fcinema.txt' and v ~= 'offline.json' and v ~= 'eng.json' then
-                    intf.items['list']:add_value( v, k )
-                end
-            end]]
+        cache = function ( ... )
             intf.items['list']:clear()
             fcinema.data = {}
             fcinema.data['ids'] = {}
@@ -217,18 +220,14 @@ intf = {
                 end
             end
             intf.msg( "Los ficheros deben estar en la carpeta ".. config.path )
-            
         end,
 
         search = function ( ... )
             media.file.name = intf.items["title"]:get_text()
             local data = fcinema.search_online( nil, nil, nil, media.file.name )
-            local dir_list = vlc.net.opendir( config.path )
-            for k,v in pairs( dir_list ) do
-                fcinema.read( v )
-            end
             fcinema.data = data
-            intf.select_movie.show()
+            intf.select_movie.fill_movies()
+            intf.msg("")
         end,
 
         choose = function ( ... )
@@ -247,7 +246,7 @@ intf = {
                 local title = intf.items["title"]:get_text()
                 intf.change_dlg()
 
-                intf.items['l_name'] = dlg:add_label( intf.sty.err("Importante:").." Asegurese de que la película realmente no esta", 1, 1, 5, 1 )
+                intf.items['l_name'] = dlg:add_label( style.err("Importante:").." Asegurese de que la película realmente no esta", 1, 1, 5, 1 )
                 
                 intf.items['l_title'] = dlg:add_label( "Título: ", 1, 2, 2, 1 )
                 intf.items['title'] = dlg:add_text_input( title, 3, 2, 3, 1 )
@@ -289,8 +288,8 @@ intf = {
             intf.main.create_list()
 
             -- Static
-            local title = intf.sty.tit( fcinema.data['title'] ) or intf.sty.tit( ' ' )
-            intf.items["title"] = dlg:add_label( title, 2, 1, 10, 1)
+            local title = style.tit( fcinema.data['title'] ) or style.tit( ' ' )
+            intf.items["title"] = dlg:add_label( title, 3, 1, 10, 1)
             intf.items["director"] = dlg:add_label( '<i><center>'..(fcinema.data['director'] or '')..'</center></i>', 2, 2, 10, 1)
             intf.items["pg"] = dlg:add_label( fcinema.data['pg'] or '', 3, 2, 1, 1)
 
@@ -439,7 +438,7 @@ intf = {
             local row = n * 10
             
             if intf.items['s'..row] then
-            -- case 
+            -- case scenes are hiden
                 --vlc.msg.dbg( 'adding '..row )
                 typ = intf.main.button[n]
                 for i,v in ipairs( intf.main.list[typ] ) do
@@ -481,6 +480,7 @@ intf = {
 
             intf.items['b_change_lang'] = dlg:add_button( lang.b_change_lang, intf.advanced.lang, 4, 8, 1, 1 )
 
+            --intf.items['l_contribute'] = dlg:add_label( "Fcinema esta desarrollado por una comunidad de voluntarios" ,1, 6, 1, 1 )
             intf.items['language'] = dlg:add_dropdown( 3, 8, 1, 1)
             intf.items['language']:add_value( "English", 1 )
             intf.items['language']:add_value( "Spanish", 2 )
@@ -493,7 +493,7 @@ intf = {
 
         donate = function ( ... )
             intf.msg( lang.msg_donate )
-            net.openurl( 'http://www.fcinema.org' )
+            net.openurl( 'http://www.fcinema.org/donate' )
         end,
 
         feedback = function ( ... )
@@ -512,7 +512,6 @@ intf = {
                 config.load_lang( "esp" )
             end
             intf.advanced.show()
-            --intf.msg( lang.language_changed )
         end,
 
         bad_hash = function ( ... )
@@ -538,11 +537,12 @@ intf = {
 
             intf.items['l_comment'] = dlg:add_label( "Sugerencia: ", 1, 3, 2, 1 )
             intf.items['comment'] = dlg:add_text_input( "", 3, 3, 3, 1 )
+            --intf.items['trick'] = dlg:add_label("&nbsp;", 1, 4, 2, 1)
 
-            intf.items["message"] = dlg:add_label("", 1, 4, 3, 1)
+            intf.items["message"] = dlg:add_label(" ", 1, 5, 3, 1)
 
-            intf.items['b_send'] = dlg:add_button( "Enviar feedback", intf.feedback.send, 3, 5, 1, 1 )
-            intf.items['b_back'] = dlg:add_button( lang.back, intf.advanced.show, 2, 5, 1, 1)
+            intf.items['b_send'] = dlg:add_button( "Enviar feedback", intf.feedback.send, 4, 5, 1, 1 )
+            intf.items['b_back'] = dlg:add_button( lang.back, intf.advanced.show, 1, 5, 1, 1)
 
         end,
 
@@ -680,7 +680,7 @@ intf = {
             end
 
             intf.items['b_preview'] = dlg:add_button( lang.preview, intf.editor.preview, 8, 6, 1, 1)
-            intf.items['b_add'] = dlg:add_button( lang.add_scene, intf.editor.add_value, 9, 6, 1, 1)
+            intf.items['b_add'] = dlg:add_button( lang.add_scene, intf.editor.add_scene, 9, 6, 1, 1)
             intf.items['b_edit'] = dlg:add_button( lang.edit_selected, intf.editor.edit, 10, 6, 1, 1)
 
             --intf.items['space'] = dlg:add_label( "", 9, 7, 1, 1 )
@@ -696,7 +696,7 @@ intf = {
             --intf.items['b_save'] = dlg:add_button( "Guardar", fcinema.save, 9, 10, 1, 1)
             intf.items['b_back'] = dlg:add_button( lang.back, intf.editor.close, 10, 10, 1, 1)
             
-            intf.editor.fill_scenes()
+            intf.editor.fill_list()
             collectgarbage()
         end,
 
@@ -704,7 +704,7 @@ intf = {
             
             edl.deactivate()
             if string.match( fcinema.data['id'], 'p' ) then
-                intf.msg( intf.sty.err("Imposible").." compartir ficheros locales")
+                intf.msg( style.err("Imposible").." compartir ficheros locales")
                 return
             end
 
@@ -748,9 +748,9 @@ intf = {
             config.options.name = user
             if fcinema.upload( user, pass ) then
                 intf.editor.show()
-                intf.msg( intf.sty.ok( "Gracias por colaborar con fcinema") )
+                intf.msg( style.ok( "Gracias por colaborar con fcinema") )
             else
-                intf.msg( intf.sty.err( "Error: " ).."no se pudo completar la operación")
+                intf.msg( style.err( "Error: " ).."no se pudo completar la operación")
             end
         end,
 
@@ -760,28 +760,24 @@ intf = {
         end,
 
         nextframe = function ( ... )
-            --TODO: change this
+            intf.msg("")
             local len = intf.items['len']:get_text()
-            local t = media.get_time()
-            if not t then return end
-            media.go_to( t + len )
+            media.jump( len )
         end,
 
         previousframe = function ( ... )
-            --TODO: change this
+            intf.msg("")
             local len = intf.items['len']:get_text()
-            local t = media.get_time()
-            if not t then return end
-            media.go_to( t - len )
+            media.jump( -len )
         end,
 
-        --status = nil,
-
         play = function ( )
+            intf.msg("")
             vlc.playlist.pause()
         end,
 
         preview = function ( ... )
+            intf.msg("")
             if edl.active then
                 edl.deactivate()
                 --intf.items['b_preview']:set_text( "Previsualizar")
@@ -797,25 +793,48 @@ intf = {
         end,        
 
         get_time = function ()
+            intf.msg("")
             local str = intf.to_hour( media.get_time() , 1000 )
             intf.items["Start"]:set_text( str )        
         end,
 
         get_time2 = function ()
+            intf.msg("")
             local str = intf.to_hour( media.get_time() , 1000 )
             intf.items["Stop"]:set_text( str )            
         end,
 
-        add_value = function ( )
+        add_scene = function ( )
+            intf.msg("")
+        -- Read values
             local start = intf.to_sec( intf.items["Start"]:get_text() )
             local stop = intf.to_sec( intf.items["Stop"]:get_text() )
             local desc = intf.items["Desc"]:get_text()
             local typ_num = intf.items["Type"]:get_value()
-
             local typ = intf.editor.dropdown[typ_num]
 
-            intf.editor.add_scene( start, stop, typ, desc, nil )
+        -- Check the values are correct
+            if not start or not stop or desc == '' then
+                intf.msg( lang.invalid_data )
+                return
+            elseif stop < start then
+                intf.msg( style.err("Error: ").. "compruebe duración de la escena" )
+                return
+            end
+
+        -- Clean the editor
+            intf.items["Start"]:set_text("")
+            intf.items["Stop"]:set_text("")
+            intf.items["Desc"]:set_text("")
+
+        -- Add the scene
+            fcinema.add_scene( start, stop, typ, desc )
+        
+        -- Update the list
+            intf.editor.fill_list()
+
         end,
+
 
         edit = function (  )
             local tab = intf.items['list']:get_selection( )
@@ -826,77 +845,36 @@ intf = {
                 stop = data['stop'][k]
                 desc = data['desc'][k]
                 typ = data['type'][k]
-                table.remove( data['start'], k )
-                table.remove( data['stop'], k )
-                table.remove( data['desc'], k )
-                table.remove( data['type'], k )
+                fcinema.del_scene( k )
                 break
             end
 
-            intf.editor.fill_scenes()
+            intf.editor.fill_list()
 
-            stop  = intf.to_hour( stop, 1000 )
-            intf.items["Stop"]:set_text( stop )
+            stop_h  = intf.to_hour( stop, 1000 )
+            intf.items["Stop"]:set_text( stop_h )
 
-            start  = intf.to_hour( start, 1000 )
-            intf.items["Start"]:set_text( start )
+            start_h  = intf.to_hour( start, 1000 )
+            intf.items["Start"]:set_text( start_h )
 
             intf.items["Desc"]:set_text( desc )
 
+            -- TODO:
             --intf.items["Type"]:set_value( typ )
 
-            --fcinema.save()
-
-        end,
-
-        add_scene = function ( start, stop, typ, desc, i )
-            local data = fcinema.data
-
-            if not start or not stop or desc == '' then
-                intf.msg( lang.invalid_data )
-                return
-            end
-
-            if stop < start then
-                intf.msg( intf.sty.err("Error: ").. "compruebe duración de la escena" )
-                return
-            end
-            intf.msg("")
-
-            intf.items["Start"]:set_text("")
-            intf.items["Stop"]:set_text("")
-            intf.items["Desc"]:set_text("")
-
-            if not data['stop'] then
-                fcinema.data['start'] = {}
-                fcinema.data['stop'] = {}
-                fcinema.data['desc'] = {}
-                fcinema.data['type'] = {}
-            end
-
-            if not i then
-                i = table.maxn( data['start'] ) + 1
-            end
-
-            start_h = intf.to_hour( start, 1 )
-            stop_h = intf.to_hour( stop, 1 )
-            intf.items['list']:add_value( start_h .." ".. stop_h.." "..typ.." "..desc, i )
-
-            --TODO: overwrite the same??
-            data['start'][i] = start
-            data['stop'][i] = stop
-            data['type'][i] = typ
-            data['desc'][i] = desc
-
             fcinema.save()
-            
+
         end,
 
-        fill_scenes = function()
+        fill_list = function()
             intf.items['list']:clear()
             local data = fcinema.data
-            for k,v in pairs( data['desc'] ) do
-                intf.editor.add_scene( data['start'][k], data['stop'][k], data['type'][k], data['desc'][k], k )
+            for k,v in pairs( data['stop'] ) do
+                local start_h = intf.to_hour( data['start'][k], 1 )
+                local stop_h = intf.to_hour( data['stop'][k], 1 )
+                local typ = data['type'][k]
+                local desc = data['desc'][k]
+                intf.items['list']:add_value( start_h .." ".. stop_h.." "..typ.." "..desc, k )
             end
         end,
     },
@@ -958,25 +936,6 @@ intf = {
             dlg:update()
         end
     end,
-
-    sty = {
-        err = function ( str )
-            if not str then return end
-            return "<span style='color:#B23'><b>"..str.."</b></span> "
-        end,
-
-        ok = function ( str )
-            if not str then return end
-            return "<span style='color:#181'><b>"..str.."</b></span> "
-        end,
-
-        tit = function ( str )
-            if not str then return end
-            return "<center><h1>"..str.."</h1></center>"
-        end
-    },
-
-
 
     progress_bar = function ( pct )
         local size = 30
@@ -1065,6 +1024,9 @@ edl = {
     action= {},
     active = false,
     view_mode = false,
+    start_margin = 0.2,
+    stop_margin = 0.1,
+    last_time = 0,
 
     activate = function( )
         if edl.active then
@@ -1086,8 +1048,8 @@ edl = {
         edl.stop = {}
         for k,v in pairs( intf.main.actions ) do
             if v then
-                table.insert( edl.start, fcinema.data['start'][k] )
-                table.insert( edl.stop, fcinema.data['stop'][k] )
+                table.insert( edl.start, fcinema.data['start'][k] - edl.start_margin )
+                table.insert( edl.stop, fcinema.data['stop'][k] + edl.stop_margin )
             end
         end
         vlc.msg.dbg( '[Fcinema]'..json.encode( edl.start ) .. json.encode( edl.stop ) )
@@ -1110,12 +1072,12 @@ edl = {
 
         local t = media.get_time()
 
-        if not t then return end
+        if not t or t == edl.last_time then return end
+        edl.last_time = t
 
         vlc.msg.dbg( '[Fcinema] Comprobando tiempo ' .. t )
-        --vlc.osd.message( "fcinema activado", 1, "bottom-left", 1000000 )
         for i, stop in ipairs( edl.stop ) do
-            if t < stop - 1 and t > edl.start[i] - 0.175 then
+            if t < stop - 0.4 and t > edl.start[i] then
                 -- TODO: allow different actions
                 media.go_to( stop )
                 return
@@ -1143,7 +1105,10 @@ fcinema = {
         vlc.msg.dbg( "[Fcinema] Looking files in offline mode")
         if not id then
             id = fcinema.hash2id( config.offline_db )
-            if id then vlc.msg.dbg( "[Fcinema] ID finded in offline cache! " .. id ) end
+            if id then
+                vlc.msg.dbg( "[Fcinema] ID finded in offline cache! " .. id )
+                data = fcinema.read( config.path ..  id .. '.json')    
+            end
         end
         if id then
             data = fcinema.read( config.path ..  id .. '.json')
@@ -1267,7 +1232,7 @@ fcinema = {
         local file = config.path ..fcinema.data['id'] .. ".json"
         local data = json.encode( fcinema.data )
         system.write( file, data )
-        intf.msg( intf.sty.ok( 'Guardado con exito') )
+        intf.msg( style.ok( 'Guardado con exito') )
 
     end,
 
@@ -1298,6 +1263,33 @@ fcinema = {
         end
     end,
     
+    add_scene = function( start, stop, typ, desc )
+        if not fcinema.data['stop'] then
+            fcinema.data['start'] = {}
+            fcinema.data['stop'] = {}
+            fcinema.data['desc'] = {}
+            fcinema.data['type'] = {}
+        end
+
+        if not i then   -- just to be sure all values are inserted in the same position
+            i = table.maxn( fcinema.data['stop'] ) + 1
+        end        
+
+        fcinema.data['start'][i] = start
+        fcinema.data['stop'][i] = stop
+        fcinema.data['type'][i] = typ
+        fcinema.data['desc'][i] = desc
+
+        fcinema.save()
+        return i
+    end,
+
+    del_scene = function ( scene_number )
+        table.remove( fcinema.data['start'], scene_number )
+        table.remove( fcinema.data['stop'], scene_number )
+        table.remove( fcinema.data['desc'], scene_number )
+        table.remove( fcinema.data['type'], scene_number )
+    end,
 }
 
 --------------------------------------- SYSTEM ----------------------------------------
@@ -1317,6 +1309,7 @@ system = {
     end,
 
     write = function ( file, str )
+        vlc.msg.dbg( '[Fcinema] Writing data to file: '.. file )
         local tmpFile = assert( io.open( file , "wb") )
         if not tmpFile then return false end
         tmpFile:write( str )
@@ -1335,7 +1328,7 @@ sync = {
     auto = function ( ... )
         
         local borders, prob = sync.get_borders()
-        local ref = fcinema.data['borders'] -- FIXME: for dbg, then from fcinema.org
+        local ref = fcinema.data['borders']
         if not ref then 
             intf.msg( "Imposible sincronizar automáticamente, puedes utilizar la sincronización manual")
             return
@@ -1364,7 +1357,7 @@ sync = {
             os.execute( cmd )
 
             local log = system.read( config.path.."cuts.log" )
-            --vlc.msg.dbg( log )
+            if not log then return end
             for frame, prob in string.gfind( log, "([^%s]+)%s+([^%s]+)%s+[01]") do
                 if prob+0 > 0.5 then
                    table.insert( borders, frame )
@@ -1551,7 +1544,7 @@ media = {
     get_info = function()
 
         if not media.input_item() then
-            intf.msg( intf.sty.err( "No input item") )
+            intf.msg( style.err( "No input item") )
             return
         end
         --TODO: vlc.playlist.pause() toggle??
@@ -1678,7 +1671,7 @@ media = {
         local item = media.input_item()
         
         if not item then 
-            intf.msg( intf.sty.err( "No input item") )
+            intf.msg( style.err( "No input item") )
             return false
         end
             
