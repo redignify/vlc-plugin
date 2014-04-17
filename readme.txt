@@ -1,32 +1,33 @@
 
 
-1. Sobre esta versión
+1. Sobre esta versiÃ³n
 =====================
 
-Esta es una versión de desarrollo, muchas de las funcionalidades estan en fase
-de elaboración. Si la opinión de los usuarios es siempre importante, en la fase 
-de desarrollo es vital, por favor no dejes de darnos tu opinión en feedback@fcinema.org
+Esta es una versiÃ³n de desarrollo, muchas de las funcionalidades estan en fase
+de elaboraciÃ³n. Si la opiniÃ³n de los usuarios es siempre importante, en la fase 
+de desarrollo es vital, por favor no dejes de darnos tu opiniÃ³n en feedback@fcinema.org
 
-Por otro lado, estamos un equipo pequeño y vamos a necesitar mucha ayuda para
-llevar esto adelante, así que si te gusta la idea y quieres aportar, visitanos
+Por otro lado, estamos un equipo pequeÃ±o y vamos a necesitar mucha ayuda para
+llevar esto adelante, asÃ­ que si te gusta la idea y quieres aportar, visitanos
 en fcinema.org, te necesitamos!
 
 
-2. Instalación
+2. InstalaciÃ³n
 ==============
 
 Para instalar fcinema solo tienes que copiar el fichero fcinema.lua en la
-carpeta de instalación de vlc. Esto es:
+carpeta de instalaciÃ³n de vlc. Esto es:
 	- Windows: C:\Program Files (x86)\VideoLAN\VLC\lua\extensions
 	- Linux: /usr/lib/vlc/lua/extensions/
 	- Mac: /Applications/VLC.app/Contents/MacOS/share/lua/extensions/ (La interfaz puede dar problemas)
 
-Nota importante: Algunas versiones de VLC no soportan el plugin (debería solucionarse pronto). Una buena versión de VLC que soporta el plugin es la 2.0.8 Twoflower. Puedes descargarla en: http://www.videolan.org/vlc/releases/2.0.8.html
+Nota importante: Algunas versiones de VLC no soportan el plugin (estamos trabajando en ello).
+Puedes descargar una de la versiones compatibles en http://www.videolan.org/vlc/releases/2.0.8.html
 
 3. Uso
 =======
 
-Abre vlc y carga la película que quieras ver. En el menu superior pulsa "View",
-al final de la lista verás la opción "fcinema". Haz click y listo!
+Abre vlc y carga la pelÃ­cula que quieras ver. En el menu superior pulsa "View",
+al final de la lista verÃ¡s la opciÃ³n "fcinema". Haz click y listo!
 
-Para más ayuda sobre la navegación, puedes utilizar el botón de "Ayuda"
+Para mÃ¡s ayuda sobre la navegaciÃ³n, puedes utilizar el botÃ³n de "Ayuda"

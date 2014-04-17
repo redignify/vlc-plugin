@@ -323,6 +323,7 @@ intf = {
             ['dr'] = 'Consumo de drogas',
             ['di'] = 'Discriminación',
             ['syn']= 'Sincronización',
+            ['g']= 'Desagradable',
         },
 
         watch_movie = function ( ... )
@@ -738,6 +739,7 @@ intf = {
         end,]]--
 
         upload = function ( ... )
+            edl.deactivate()
             local pass = intf.items['i_pass']:get_text()
             local user = intf.items['i_name']:get_text()
             local borders, prob = sync.get_borders()
@@ -760,12 +762,14 @@ intf = {
         end,
 
         nextframe = function ( ... )
+            edl.deactivate()
             intf.msg("")
             local len = intf.items['len']:get_text()
             media.jump( len )
         end,
 
         previousframe = function ( ... )
+            edl.deactivate()
             intf.msg("")
             local len = intf.items['len']:get_text()
             media.jump( -len )
@@ -778,18 +782,22 @@ intf = {
 
         preview = function ( ... )
             intf.msg("")
-            if edl.active then
-                edl.deactivate()
-                --intf.items['b_preview']:set_text( "Previsualizar")
-            else
-                edl.start[1] = intf.to_sec( intf.items["Start"]:get_text() )
-                edl.stop[1] = intf.to_sec( intf.items["Stop"]:get_text() ) 
-                media.go_to( edl.start[1] - 5 )
-                vlc.playlist.play()
-                --intf.items['b_preview']:set_text( "Parar preview")
-                vlc.var.add_callback( vlc.object.input(), "intf-event", edl.check )
-                edl.active = true
+            edl.start[1] = intf.to_sec( intf.items["Start"]:get_text() )
+            edl.stop[1] = intf.to_sec( intf.items["Stop"]:get_text() )
+            if not edl.start[1] then
+                local tab = intf.items['list']:get_selection( )
+                local data = fcinema.data
+                for k,v in pairs( tab ) do
+                    edl.start[1] = data['start'][k]
+                    edl.stop[1] = data['stop'][k]
+                    break
+                end
             end
+            if not edl.start[1] then end
+            media.go_to( edl.start[1] - 5 )
+            vlc.playlist.play()
+            vlc.var.add_callback( vlc.object.input(), "intf-event", edl.check )
+            edl.active = true
         end,        
 
         get_time = function ()
@@ -805,6 +813,7 @@ intf = {
         end,
 
         add_scene = function ( )
+            edl.deactivate()
             intf.msg("")
         -- Read values
             local start = intf.to_sec( intf.items["Start"]:get_text() )
@@ -837,6 +846,7 @@ intf = {
 
 
         edit = function (  )
+            edl.deactivate()
             local tab = intf.items['list']:get_selection( )
             local data = fcinema.data
             local start, stop, desc, typ
@@ -869,6 +879,7 @@ intf = {
         fill_list = function()
             intf.items['list']:clear()
             local data = fcinema.data
+            --intf.items['list']:add_value( " ", 101 )
             for k,v in pairs( data['stop'] ) do
                 local start_h = intf.to_hour( data['start'][k], 1 )
                 local stop_h = intf.to_hour( data['stop'][k], 1 )
@@ -876,6 +887,8 @@ intf = {
                 local desc = data['desc'][k]
                 intf.items['list']:add_value( start_h .." ".. stop_h.." "..typ.." "..desc, k )
             end
+            --intf.items['list']:add_value( " ", 99 )
+            --intf.items['list']:add_value( "      + Añadir nueva     ", 100 )
         end,
     },
     
@@ -884,7 +897,7 @@ intf = {
             intf.change_dlg()
             intf.items['help'] = dlg:add_html( lang.help, 1, 1, 4, 1)
             intf.items['trick'] = dlg:add_label(string.rep ("&nbsp;", 100), 1, 2, 3, 1)
-            intf.items['back'] = dlg:add_button( "Atras", intf.main.show, 4, 2, 1, 1)
+            intf.items['back'] = dlg:add_button( lang.back, intf.main.show, 4, 2, 1, 1)
             collectgarbage()
         end,
     },
@@ -1027,6 +1040,7 @@ edl = {
     start_margin = 0.2,
     stop_margin = 0.1,
     last_time = 0,
+    volume = nil,
 
     activate = function( )
         if edl.active then
@@ -1059,6 +1073,8 @@ edl = {
     deactivate = function()
         if edl.active then
             vlc.var.del_callback( vlc.object.input(), "intf-event", edl.check )
+            vlc.playlist.play()
+            vlc.playlist.pause()
             if edl.view_mode then
                 vlc.osd.message( "fcinema desactivado", 1, "botton", 5000000 )
             else
@@ -1076,14 +1092,28 @@ edl = {
         edl.last_time = t
 
         vlc.msg.dbg( '[Fcinema] Comprobando tiempo ' .. t )
+
         for i, stop in ipairs( edl.stop ) do
-            if t < stop - 0.4 and t > edl.start[i] then
-                -- TODO: allow different actions
-                media.go_to( stop )
+            if t < stop - 0.2 and t > edl.start[i] then
+                if true then 
+                    -- TODO: allow different actions
+                    media.go_to( stop )
+                elseif not edl.mute then
+                    edl.mute = true
+                    edl.volume = vlc.volume.get()
+                    vlc.msg.err( "[Fcinema] Muting" )
+                    vlc.volume.set( 0 )
+                end
                 return
             end
         end
+        if edl.mute then
+            vlc.msg.err( "[Fcinema] Unmuting" )
+            vlc.volume.set( edl.volume )
+            edl.mute = false
+        end
     end,
+    mute = false,
 
 }
 
@@ -1271,9 +1301,9 @@ fcinema = {
             fcinema.data['type'] = {}
         end
 
-        if not i then   -- just to be sure all values are inserted in the same position
-            i = table.maxn( fcinema.data['stop'] ) + 1
-        end        
+        --if not i then   -- just to be sure all values are inserted in the same position
+        local i = table.maxn( fcinema.data['stop'] ) + 1
+        --end        
 
         fcinema.data['start'][i] = start
         fcinema.data['stop'][i] = stop
@@ -1309,8 +1339,9 @@ system = {
     end,
 
     write = function ( file, str )
+        if not str then return end
         vlc.msg.dbg( '[Fcinema] Writing data to file: '.. file )
-        local tmpFile = assert( io.open( file , "wb") )
+        local tmpFile = io.open( file , "wb")
         if not tmpFile then return false end
         tmpFile:write( str )
         tmpFile:flush()
