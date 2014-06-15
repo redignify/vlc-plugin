@@ -55,6 +55,19 @@ function activate()
 
 end
 
+
+--[[
+TODO escuchar inputs del teclado
+
+vlc.var.add_callback( vlc.object.libvlc(), "key-pressed", key_press )
+function key_press( var, old, new, data )
+  local key = new
+  vlc.msg.dbg( key )
+end
+]]--
+
+
+
 function close()
     deactivate()
 end
@@ -67,6 +80,8 @@ function deactivate()
     edl.deactivate()
 
     config.save()
+
+    fcinema.save()
 
     vlc.deactivate()
 end
@@ -184,6 +199,7 @@ intf = {
 
     select_movie = {
         show = function ( ... )
+        -- Display interface for selecting movie
             intf.change_dlg()
             intf.items['header'] = dlg:add_label( lang.which_movie, 1, 1, 4, 1 )
             intf.items['list'] = dlg:add_list( 1, 3, 7, 7 )
@@ -209,7 +225,7 @@ intf = {
         end,
 
         cache = function ( ... )
-        -- Display movies stores in cache
+        -- Display movies stored in cache
 
         -- Prepare stuff
             intf.items['list']:clear()
@@ -247,7 +263,10 @@ intf = {
         end,
 
         new = {
+        -- Dialog for adding new movies
+
             show = function( ... )
+            -- Show the dialog, request title, director...
                 local title = intf.items["title"]:get_text()
                 intf.change_dlg()
 
@@ -269,7 +288,7 @@ intf = {
                 local data = { ['start'] = {}, ['stop'] = {}, ['desc'] = {}, ['type'] = {}, ['level'] = {} }
                 data['title'] = intf.items["title"]:get_text()
                 data['director'] = intf.items["director"]:get_text()
-                data['id'] = 'p'..media.file.hash
+                data['id'] = 'p'..media.file.hash   -- Add 'p' to specify manually added movie
                 fcinema.load_movie( data )
                 fcinema.add2index( config.path .. config.user_modified_db )
                 fcinema.save()
@@ -280,8 +299,8 @@ intf = {
     }, 
 
 
-    ---------------------------- Main window ---------------------------------------
-
+    ---------------------------- Main legacy ---------------------------------------
+--[[
 
     main2 = {
         show = function()
@@ -476,8 +495,9 @@ intf = {
                 intf.main.del_header( row + 1 )
             end
         end,
-    },
-    ------------------------------ MAIN 2 ------------------------------
+    },]]
+
+    ------------------------------ MAIN ------------------------------
     main = {
         show = function()
 
@@ -1050,6 +1070,7 @@ intf = {
 
         -- Add the scene
             if fcinema.add_scene( start, stop, typ, desc, level ) == -1 then return end
+            fcinema.save()
 
         -- Classify movie as user modified
             fcinema.add2index( config.path .. config.user_modified_db )
@@ -1298,7 +1319,6 @@ edl = {
     action= {},
     active = false,
     preview_active = 0,
-    view_mode = false,
     start_margin = 0.2,
     stop_margin = 0.1,
     last_time = 0,
@@ -1313,11 +1333,12 @@ edl = {
             if not edl.from_user() then return end
             vlc.playlist.play()
             vlc.var.add_callback( vlc.object.input(), "intf-event", edl.check )
+            vlc.var.add_callback( vlc.object.libvlc(), "key-pressed", edl.key_press ) -- TODO testing
             edl.active = true
-            edl.view_mode = true
             vlc.osd.message( "fcinema activado", 1, "botton", 1000000 )
             dlg:hide()
         end
+        --vlc.video.fullscreen( ) -- TODO testing
     end,
 
     from_user = function ( ... )
@@ -1340,15 +1361,13 @@ edl = {
     -- Deactivate normal playing callback
         if edl.active then
             vlc.var.del_callback( vlc.object.input(), "intf-event", edl.check )
-            if edl.view_mode then
-                vlc.osd.message( "fcinema desactivado", 1, "botton", 5000000 )
-                vlc.playlist.play()
-                vlc.playlist.pause()    -- FIXME: this toggle!!
-            else
-                vlc.osd.message( "fcinema desactivado", 1, "botton", 2000000 )
-            end
+            vlc.var.del_callback( vlc.object.libvlc(), "key-pressed", edl.key_press ) -- TODO testing
+            vlc.osd.message( "fcinema desactivado", 1, "botton", 5000000 )
+            vlc.playlist.play()
+            vlc.playlist.pause()    -- FIXME: this toggle!!
             edl.active = false
         end
+
 
     -- Deactivate preview callback
         if edl.preview_active ~= 0 then
@@ -1376,6 +1395,25 @@ edl = {
         end
     end,
 
+
+    key_press = function ( var, old, new, data )
+        local key = new
+        vlc.msg.dbg( key )
+        if key == 113 then
+            if not edl.pressed then
+                edl.first_pressed = edl.last_time
+                edl.pressed = true
+                edl.volume = vlc.volume.get()
+                vlc.volume.set( 0 )
+            end
+            edl.last_pressed = edl.last_time
+        end
+    end,
+
+    last_pressed = 0,
+    first_pressed = 0,
+    pressed = false,
+
     check = function( )
     -- Check if current time is inside 'dark zone' and skip it
 
@@ -1384,6 +1422,13 @@ edl = {
         if not t or t == edl.last_time then return end
         edl.last_time = t
         vlc.msg.dbg( '[Fcinema] Comprobando tiempo ' .. t )
+
+        if edl.pressed and edl.last_pressed < t-0.7 then
+            edl.pressed = false
+            fcinema.add_scene( edl.first_pressed - 0.8, edl.last_pressed-0.1, 'u', 'Escena sin clasificar', 1 )
+            vlc.msg.dbg( "[Fcinema] New scene added")
+            vlc.volume.set( edl.volume )
+        end
 
     -- Check if current time is in "dark zone"
         for i, stop in ipairs( edl.stop ) do
@@ -1634,9 +1679,6 @@ fcinema = {
         fcinema.data['type'][i] = typ
         fcinema.data['desc'][i] = desc
         fcinema.data['level'][i] = level
-
-    -- Save
-        fcinema.save()
         return i
     end,
 
