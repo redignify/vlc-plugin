@@ -147,15 +147,15 @@ lang = {
     help = "Ayuda sobre como usar fcinema <br>" ..
         "un poco de about y thanks a opensub ... <br>"..
         "película erronea <br>" ..
-        "sincronización manual <br>"..
+        "calibración manual <br>"..
         "...",
     ------ Advenced -------------
     l_editor = "Crea tu propia lista de escenas: ",
     b_editor = "Editor",
     l_donate = "Ayuda a mantener fcinema: ",
     b_donate = "Donar",
-    l_sync = "Sincronización manual: ",
-    b_sync = "Sincronizar",
+    l_sync = "Calibración manual: ",
+    b_sync = "Calibrar",
     l_feedback = "Tu opinión nos importa: ",
     b_feedback = "Enviar feedback",
     l_bad_movie = "No es esta la película que estas viendo: ",
@@ -191,7 +191,7 @@ intf = {
     loading = {
         show = function ( )
             intf.change_dlg()
-            intf.items["message"] = dlg:add_label("", 1, 99, 10, 1)
+            intf.items["message"] = dlg:add_label("", 1, 1, 4, 1)
         end,
     },
 
@@ -298,205 +298,6 @@ intf = {
 
     }, 
 
-
-    ---------------------------- Main legacy ---------------------------------------
---[[
-
-    main2 = {
-        show = function()
-
-            intf.change_dlg()
-            
-            intf.main.actions = {}
-            intf.main.button = {}
-
-            intf.main.create_list()
-
-            -- Static
-            local title = style.tit( fcinema.data['title'] ) or style.tit( ' ' )
-            intf.items["title"] = dlg:add_label( title, 3, 1, 10, 1)
-            intf.items["director"] = dlg:add_label( '<i><center>'..(fcinema.data['director'] or '')..'</center></i>', 2, 2, 10, 1)
-            intf.items["pg"] = dlg:add_label( fcinema.data['pg'] or '', 3, 2, 1, 1)
-
-            intf.items['advanced'] = dlg:add_button( lang.advanced, intf.advanced.show, 3, 100, 1, 1)
-            intf.items['help'] = dlg:add_button( lang.b_help, intf.help.show, 1, 100, 2, 1)
-            intf.items['watch'] = dlg:add_button( lang.view_movie, intf.main.watch_movie, 10, 100, 2, 1)
-
-            intf.items["message"] = dlg:add_label("", 1, 99, 10, 1)
-
-            local poster = fcinema.data['poster']
-            if poster then
-                local dst = config.path..fcinema.data['id']..'.jpg'
-                if not file_exist( dst ) then
-                    net.downloadfile( poster, dst )
-                end
-                if file_exist( dst ) then
-                    vlc.msg.dbg( "We have the poster!" )
-                    --intf.items["image"] = dlg:add_image( dst,  2, 1, nil, 2 )
-                end
-            end
-
-            -- "Dynamic"
-            local row = 10
-            for k,v in pairs( intf.main.list ) do
-                intf.main.add_list( k, row )
-                row = row + 10
-            end
-
-            local id = fcinema.data['id']   -- TODO: remove chapter info eg: tt023568_5_4
-            intf.items['imdb_parentguide'] = dlg:add_label("<a href='http://www.imdb.com/title/"..id.."/parentalguide'>IMDB Parents Guide</a>", 9,98,1,1)
-            intf.items['kids-in-mind'] = dlg:add_label("<a href='http://www.kids-in-mind.com/cgi-bin/search/search.pl?q="..fcinema.data['title'].."'>Kids In Mind Guide</a>", 10,98,1,1)
-
-            dlg:update()
-            sync.auto()
-            collectgarbage()
-        end,
-
-        label =  {
-            ['v'] = 'Violencia',
-            ['vp'] = 'Violencia extrema',
-            ['xp'] = 'Sexo explicito',
-            ['x'] = 'Sexo implicito',
-            ['sp'] = 'Desnudo',
-            ['cs'] = 'Comentario soez',
-            ['vo'] = 'Vocabulario',
-            ['dr'] = 'Consumo de drogas',
-            ['di'] = 'Discriminación',
-            ['syn']= 'Sincronización',
-            ['g']= 'Desagradable',
-        },
-
-        watch_movie = function ( ... )
-        -- Be sure scene are synced
-            if sync.lock() then return end
-        -- Read all values and start playback
-            for k,v in pairs( intf.main.button ) do
-                --FIXME Just a trick to read all values
-                intf.main.show_n( k )
-            end
-            edl.activate()
-        end,
-
-        add_list = function ( typ, row )
-            if row == 10 then func = intf.main.show_1
-            elseif row == 20 then func = intf.main.show_2
-            elseif row == 30 then func = intf.main.show_3
-            elseif row == 40 then func = intf.main.show_4
-            elseif row == 50 then func = intf.main.show_5
-            else func = intf.main.show_6
-            end
-            intf.items['l'..typ] = dlg:add_button( intf.main.label[typ] or typ, func, 1, row, 3, 1)
-            intf.items['s'..row] = dlg:add_label( 'Skip ('..#intf.main.list[typ]..' escenas)', 4, row, 1, 1)
-            --intf.items['s'..row] = dlg:add_check_box( 'Skip ('..#intf.main.list[typ]..' escenas)', 1, 4, row, 2)
-            intf.main.button[ row / 10 ] = typ
-        end,
-
-        create_list = function ( ... )
-        -- Creates a list of all scenes classified by type
-            -- e.g list['violence'] = { scene 4, scene 9 }
-
-            intf.main.list = {}
-            if not fcinema.data['type'] then return end
-            for k,v in pairs( fcinema.data['type'] ) do
-                if v ~= 'syn' then
-                    if not intf.main.list[v] then
-                        intf.main.list[v] = {}
-                    end
-                    table.insert( intf.main.list[v], k )
-                    intf.main.actions[k] = true
-                end
-            end
-            --vlc.msg.dbg( json.encode( intf.main.list ) )
-        end,
-
-        read_values = function ( ... )
-            
-        end,
-
-        show_1 = function (  ) intf.main.show_n( 1 ) end,
-        show_2 = function (  ) intf.main.show_n( 2 ) end,
-        show_3 = function (  ) intf.main.show_n( 3 ) end,
-        show_4 = function (  ) intf.main.show_n( 4 ) end,
-        show_5 = function (  ) intf.main.show_n( 5 ) end,
-        show_6 = function (  ) intf.main.show_n( 6 ) end,
-
-        add_header = function ( row )
-        -- Print the scenes header on the interface (and delete section skip button)
-            intf.del( 's'..(row-1) )
-            intf.items['de'..row] = dlg:add_label('<b><center><i>Descipción</i></center></b>', 2, row, 6, 1)
-            intf.items['d'..row] = dlg:add_label('<b><i>Duración</i></b>', 10, row, 1, 1)
-            intf.items['i'..row] = dlg:add_label( lang.init, 9, row, 1, 1)
-        end,
-
-        del_header = function ( row )
-        -- Delete the scene headers from the interface (and print section skip button)
-
-            local typ = intf.main.button[ ( row -1 )/ 10 ]
-            -- Count number of scenes to skip
-            local num = 0
-            for k,v in pairs( intf.main.list[typ] ) do
-                if intf.main.actions[v] == true then
-                    num = num + 1
-                end
-            end
-            -- Print to the interface
-            intf.items['s'.. (row-1)] = dlg:add_label( 'Skip ('..num..' escenas)', 4, row-1, 1, 1)
-            --intf.items['s'.. (row-1)] = dlg:add_check_box( 'Skip ('..num..' escenas)', 1, 4, row-1, 1)
-            intf.del( 'de'..row )
-            intf.del( 'd'..row )
-            intf.del( 'i'..row )
-        end,
-    
-        add_scene = function ( row, num )
-        -- Add one scene to the interface    
-
-            -- Pre-format data
-            local len = fcinema.data['stop'][num] - fcinema.data['start'][num]
-            len = math.floor( len )
-            local hour = intf.to_hour( fcinema.data['start'][num], 1 )
-
-            -- Print data
-            intf.items['de'..row] = dlg:add_label( fcinema.data['desc'][num], 2, row, 6, 1)
-            intf.items['d'..row] = dlg:add_label('<center>'..len..'"</center>', 10, row, 1, 1)
-            intf.items['i'..row] = dlg:add_label( hour, 9, row, 1, 1)
-            intf.items['s'..row] = dlg:add_check_box( 'Skip', 1, 11, row, 1)
-            intf.items['s'..row]:set_checked( intf.main.actions[num] )
-        end,
-        
-        del_scene = function ( row, num )
-        -- Delete one scene from the interface and retrieve skip button value
-
-            intf.del( 'de'..row )
-            intf.del( 'd'..row )
-            intf.del( 'i'..row )
-            intf.main.actions[num] = intf.items['s'..row]:get_checked()
-            intf.del( 's'..row )
-        end,
-        
-        show_n = function ( n )
-        -- Show / hide scenes and headers from section n
-
-            local row = n * 10
-            
-            if intf.items['s'..row] then
-            -- case scenes are hiden
-                --vlc.msg.dbg( 'adding '..row )
-                typ = intf.main.button[n]
-                for i,v in ipairs( intf.main.list[typ] ) do
-                    intf.main.add_scene( row + i + 1, v )
-                end
-                intf.main.add_header( row + 1)
-            else
-                --vlc.msg.dbg( 'deleting ' .. row )
-                typ = intf.main.button[n]
-                for i,v in ipairs( intf.main.list[typ] ) do
-                    intf.main.del_scene( row + i + 1, v )
-                end
-                intf.main.del_header( row + 1 )
-            end
-        end,
-    },]]
-
     ------------------------------ MAIN ------------------------------
     main = {
         show = function()
@@ -516,14 +317,13 @@ intf = {
             intf.items['advanced'] = dlg:add_button( lang.advanced, intf.advanced.show, 3, 11, 2, 1)
             intf.items['help'] = dlg:add_button( lang.b_help, intf.help.show, 1, 11, 1, 2)
             intf.items['watch'] = dlg:add_button( lang.view_movie, intf.main.list_view, 5, 11, 1, 1)
-
-            --intf.items['b_apply_auto'] = dlg:add_button( 'Apply levels', intf.main.apply_level, 1, 8, 3, 1)
-            --intf.items['b_list_view'] = dlg:add_button( 'List view', intf.main.list_view, 5, 11, 1, 1)
+          
             intf.items["message"] = dlg:add_label("", 1, 10, 10, 1)
 
             --intf.main.show_poster()
             --intf.main.toggle_list()
 
+            --intf.items['l_levels'] = dlg:add_label( '<center><i>Filtering level 0.Off - 5.Strict</center></i>', 1, 2, 3, 1 ) --TODO
             intf.main.show_category( 's', 3, 5 )
             intf.main.show_category( 'v', 4, 7 )
             intf.main.show_category( 'p', 5, 8 )
@@ -567,17 +367,25 @@ intf = {
 
         show_category = function ( label, pos, preselect )
             local preselect = config.options['l_'..label]
-            intf.del( 'l_'..label )
-            intf.del( 'level'..label )
+            --intf.del( 'l_'..label )
+            --intf.del( 'level'..label )
             intf.items['l_'..label] = dlg:add_label( '<b><i>'..intf.main.label[label]..'</b></i>', 1, pos, 2, 1)
             intf.items['level'..label] = dlg:add_dropdown( 3, pos, 1, 1)
-            if preselect then intf.items['level'..label]:add_value( preselect, preselect ) end
-            for i=0,10 do
-                intf.items['level'..label]:add_value( i, i )
+            if preselect then intf.items['level'..label]:add_value( intf.main.levels[preselect], preselect ) end
+            for i=0,5 do
+                intf.items['level'..label]:add_value( intf.main.levels[i], i )
             end
-            --intf.items['level'..label]:add_value( "Custom", 11 )
             --intf.items['count'..label] = dlg:add_label( '3 skips (12s)', 5, pos, 1, 1)
         end,
+
+        levels = {
+            [0] = '0. Desactivado',
+            [1] = '1. Muy laxo',
+            [2] = '2. Laxo',
+            [3] = '3. Moderado',
+            [4] = '4. Estricto',
+            [5] = '5. Muy estricto'
+        },
 
         label = {
             ['s'] = 'Sex & Nudity',
@@ -638,19 +446,20 @@ intf = {
 
         apply_level = function()
 
+            intf.main.actions = {}
             for cat,v1 in pairs(intf.main.label) do
-                if not intf.items['level'..cat] then return end
-                local level = intf.items['level'..cat]:get_value()
-                --vlc.msg.dbg( cat..level)
-                config.options['l_'..cat] = level 
-                if intf.main.list[cat] then
-                    for k,v in pairs( intf.main.list[cat] ) do
-                        if fcinema.data['level'][v] > level then
-                            intf.main.actions[v] = true
-                            --vlc.msg.dbg( 'skip '..v)
-                        else
-                            intf.main.actions[v] = false
-                            --vlc.msg.dbg( 'unskip '..v)
+                if intf.items['level'..cat] then
+                    local level = intf.items['level'..cat]:get_value()
+                    config.options['l_'..cat] = level
+                    if intf.main.list[cat] then
+                        for k,v in pairs( intf.main.list[cat] ) do
+                            if fcinema.data['level'][v] + level < 5 then
+                                intf.main.actions[v] = false
+                                vlc.msg.dbg( 'no skip '..v)
+                            else
+                                intf.main.actions[v] = true
+                                vlc.msg.dbg( 'skip '..v)
+                            end
                         end
                     end
                 end
@@ -673,7 +482,7 @@ intf = {
                     intf.main.actions[k] = true
                 end
             end
-            --vlc.msg.dbg( json.encode( intf.main.list ) )
+            vlc.msg.dbg( json.encode( intf.main.list ) )
         end,
     },
 
@@ -734,7 +543,6 @@ intf = {
                 config.options.lang = "esp"
                 config.load_lang( "esp" )
             end
-            intf.advanced.show()
         end,
 
         bad_hash = function ( ... )
@@ -813,9 +621,9 @@ intf = {
 
         end,
 
-        jump_backward_1 = function() media.jump( -0.2 ) end,
-        jump_fordward_1 = function() media.jump( 0.2 ) end,
-        jump_backward_2 = function() media.jump( -2 ) end,
+        jump_backward_1 = function() media.jump( -0.3 ) end,
+        jump_fordward_1 = function() media.jump( 0.1 ) end,
+        jump_backward_2 = function() media.jump( -2.1 ) end,
         jump_fordward_2 = function() media.jump( 2 ) end,
 
         now = function ( )
@@ -850,7 +658,7 @@ intf = {
         preview = function ( ... )
         -- Preview modified scene
             edl.start[1] = fcinema.data['start'][intf.manual_sync.sync_scene]
-            edl.stop[1] = fcinema.data['stop'][intf.manual_sync.sync_scene] 
+            edl.stop[1] = fcinema.data['stop'][intf.manual_sync.sync_scene]
 
             media.go_to( edl.start[1] - 5 )
             vlc.playlist.play()
@@ -873,7 +681,7 @@ intf = {
             --if sync.lock then return end
             intf.change_dlg()
 
-            intf.items['list'] = dlg:add_list( 1, 1, 4, 5 )
+            intf.items['list'] = dlg:add_list( 1, 1, 4, 7 )
 
             intf.items['l_start'] = dlg:add_button( "Empieza: ", intf.editor.go2start, 7, 2, 1, 1 )
             intf.items['Start'] = dlg:add_text_input( "", 8, 2, 2, 1 )
@@ -889,11 +697,19 @@ intf = {
             intf.items['l_type'] = dlg:add_label( "Tipo y nivel: ", 7, 5, 1, 1 )
             intf.items['Type'] = dlg:add_dropdown( 8, 5, 2, 1)
             intf.items['level'] = dlg:add_dropdown( 10, 5, 1, 1)
-            for i=1,10 do
+            for i=1,5 do
                 intf.items['level']:add_value( i, i )
             end
 
-            intf.items["message"] = dlg:add_label("", 1, 7, 7, 1)
+            intf.items['l_action'] = dlg:add_label( "Acción", 7, 6, 1, 1 )
+            intf.items['Action'] = dlg:add_dropdown( 8, 6, 1, 1)
+            intf.items['Action']:add_value( "Saltar", 1 )
+            intf.items['Action']:add_value( "Sin sonido", 2 )
+            intf.items['Action']:add_value( "Sin imagen", 3 )
+            intf.items['Action']:add_value( "Descripción", 4 )
+            
+
+            intf.items["message"] = dlg:add_label("", 1, 8, 7, 1)
             
             intf.editor.dropdown = {}
             for k,v in pairs( intf.main.label ) do
@@ -902,21 +718,27 @@ intf = {
                 intf.items['Type']:add_value( v, i )
             end
 
-            intf.items['b_preview'] = dlg:add_button( lang.preview, intf.editor.preview, 3, 6, 1, 1)
-            intf.items['b_add'] = dlg:add_button( lang.add_scene, intf.editor.add_scene, 7, 6, 1, 1)
-            intf.items['b_delete'] = dlg:add_button( lang.delete_scene, intf.editor.delete_scene, 1, 6, 1, 1)
-            intf.items['b_modify'] = dlg:add_button( lang.modify_scene, intf.editor.modify, 2, 6, 1, 1)
+            intf.items['b_preview'] = dlg:add_button( lang.preview, intf.editor.preview, 9, 7, 1, 1)
+            intf.items['b_add'] = dlg:add_button( lang.add_scene, intf.editor.add_scene, 10, 7, 1, 1)
+            intf.items['b_delete'] = dlg:add_button( lang.delete_scene, intf.editor.delete_scene, 7, 7, 1, 1)
+            intf.items['b_modify'] = dlg:add_button( lang.modify_scene, intf.editor.modify, 8, 7, 1, 1)
 
-            intf.items['b_next'] = dlg:add_button( "Frame ->", intf.editor.nextframe, 10, 1, 1, 1)
-            intf.items['b_previous'] = dlg:add_button( "<- Frame", intf.editor.previousframe, 7, 1, 1, 1)
-            intf.items['b_toggle'] = dlg:add_button( "Play / Pause", intf.editor.toggle, 9, 1, 1, 1)
+            intf.items['b_back2'] = dlg:add_button( "<<", intf.manual_sync.jump_backward_2, 7, 1, 1, 1)
+            intf.items['b_back'] = dlg:add_button( "<", intf.manual_sync.jump_backward_1, 8, 1, 1, 1)
+            intf.items['b_toggle'] = dlg:add_button( "Play / Pause", intf.editor.toggle, 10, 6, 1, 1)
+            intf.items['b_next'] = dlg:add_button( ">", intf.manual_sync.jump_fordward_1, 9, 1, 1, 1)
+            intf.items['b_next2'] = dlg:add_button( ">>", intf.manual_sync.jump_fordward_2, 10, 1, 1, 1)
+
+            --[[intf.items['b_next'] = dlg:add_button( "Frame ->", intf.editor.nextframe, 10, 1, 1, 1)
+            --intf.items['b_previous'] = dlg:add_button( "<- Frame", intf.editor.previousframe, 7, 1, 1, 1)
+            --intf.items['b_toggle'] = dlg:add_button( "Play / Pause", intf.editor.toggle, 9, 1, 1, 1)
             intf.items['len'] = dlg:add_dropdown( 8, 1, 1, 1)
             for i=1,8 do
                 intf.items['len']:add_value( i, i )
-            end
+            end]]
 
-            intf.items['b_upload'] = dlg:add_button( lang.share, intf.editor.request_pass, 9, 7, 1, 1)
-            intf.items['b_back'] = dlg:add_button( lang.back, intf.main.show, 10, 7, 1, 1)
+            intf.items['b_upload'] = dlg:add_button( lang.share, intf.editor.request_pass, 9, 8, 1, 1)
+            intf.items['b_cancel'] = dlg:add_button( lang.back, intf.main.show, 10, 8, 1, 1)
             
             collectgarbage()
             intf.editor.fill_list()
@@ -941,7 +763,7 @@ intf = {
                 end
             end
             if not have_sync then
-                intf.msg( style.err("Espera ").."antes debes crear una escena de sincronización manual")
+                intf.msg( style.err("Espera ").."antes debes crear una escena de calibración manual")
                 return
             end
 
@@ -998,6 +820,7 @@ intf = {
         -- Read input
             edl.start[1] = intf.to_sec( intf.items["Start"]:get_text() )
             edl.stop[1] = intf.to_sec( intf.items["Stop"]:get_text() )
+            edl.action[1] = intf.items["Action"]:get_value()
 
         -- If no scene on input, look if something is selected on the list
             if not edl.start[1] then
@@ -1005,6 +828,7 @@ intf = {
                 if not k then return end
                 edl.start[1] = fcinema.data['start'][k]
                 edl.stop[1] = fcinema.data['stop'][k]
+                edl.action[1] = fcinema.data['action'][k]
             end
             
         -- Start the preview
@@ -1057,6 +881,8 @@ intf = {
             local desc = intf.items["Desc"]:get_text()
             local typ_num = intf.items["Type"]:get_value()
             local typ = intf.editor.dropdown[typ_num]
+            local action_num = intf.items["Action"]:get_value()
+            local action = action_num
             local level = intf.items["level"]:get_value()
             
         -- Check the values are correct
@@ -1069,7 +895,7 @@ intf = {
             end
 
         -- Add the scene
-            if fcinema.add_scene( start, stop, typ, desc, level ) == -1 then return end
+            if fcinema.add_scene( start, stop, typ, desc, level, action ) == -1 then return end
             fcinema.save()
 
         -- Classify movie as user modified
@@ -1089,10 +915,11 @@ intf = {
         -- Delete selected scene from memory and interface (permanent!)
         
         -- Get selection index and delete
-            local k = get_list_selection()
-            if not k then return end
-            fcinema.del_scene( k )
-        
+            local tab = intf.items['list']:get_selection( )
+            for k,v in pairs( tab ) do
+                fcinema.del_scene( k )
+            end
+            
         -- Update the list
             intf.editor.fill_list()
         end,
@@ -1146,7 +973,7 @@ intf = {
             intf.del( 'level' )
             intf.items['level'] = dlg:add_dropdown( 10, 5, 1, 1)
             intf.items['level']:add_value( level, level )
-            for i=1,9 do
+            for i=1,5 do
                 intf.items['level']:add_value( i, i )
             end
 
@@ -1300,6 +1127,9 @@ config = {
             for k,v in pairs(data) do
                 lang[k] = data[k]
             end
+            intf.advanced.show()
+        else
+            intf.msg( style.err("Error: ") .. "Language pack not found" )
         end
     end,
 
@@ -1322,7 +1152,6 @@ edl = {
     start_margin = 0.2,
     stop_margin = 0.1,
     last_time = 0,
-    volume = nil,
 
     activate = function( )
     -- Activate callback for edl, 'edl.check' will be called around 3-5 times/second
@@ -1349,6 +1178,7 @@ edl = {
             if v then
                 table.insert( edl.start, fcinema.data['start'][k] - edl.start_margin )
                 table.insert( edl.stop, fcinema.data['stop'][k] + edl.stop_margin )
+                table.insert( edl.action, fcinema.data['action'][k] )
             end
         end
         vlc.msg.dbg( '[Fcinema]'..json.encode( edl.start ) .. json.encode( edl.stop ) )
@@ -1390,21 +1220,33 @@ edl = {
 
     -- Check if current time is in "dark zone" and stop preview
         if t < edl.stop[1] - 0.2 and t > edl.start[1] then
-            media.go_to( edl.stop[1] )
+            if edl.action[1] == 2 then --'Mute'
+                media.mute()
+            elseif edl.action[1] == 'Dark' then 
+                media.dark()
+            elseif edl.action[1] == 'Label' then
+                media.label('')
+            else
+                media.go_to( edl.stop[1] )
+            end
+            return
+        end
+
+        if t > edl.stop[1] then
             edl.preview_active = 2 -- crash if callbacks are deactivated from a callback
+            media.unmute()
         end
     end,
 
 
     key_press = function ( var, old, new, data )
         local key = new
-        vlc.msg.dbg( key )
         if key == 113 then
             if not edl.pressed then
                 edl.first_pressed = edl.last_time
                 edl.pressed = true
-                edl.volume = vlc.volume.get()
-                vlc.volume.set( 0 )
+                media.mute()
+                media.distort()
             end
             edl.last_pressed = edl.last_time
         end
@@ -1421,39 +1263,36 @@ edl = {
         local t = media.get_time()
         if not t or t == edl.last_time then return end
         edl.last_time = t
-        vlc.msg.dbg( '[Fcinema] Comprobando tiempo ' .. t )
+        --vlc.msg.dbg( '[Fcinema] Comprobando tiempo ' .. t )
 
         if edl.pressed and edl.last_pressed < t-0.7 then
             edl.pressed = false
-            fcinema.add_scene( edl.first_pressed - 0.8, edl.last_pressed-0.1, 'u', 'Escena sin clasificar', 1 )
-            vlc.msg.dbg( "[Fcinema] New scene added")
-            vlc.volume.set( edl.volume )
+            fcinema.add_scene( edl.first_pressed - 0.8, edl.last_pressed-0.1, 'u', 'Escena sin clasificar', 1, 1 )
+            media.unmute()
         end
 
     -- Check if current time is in "dark zone"
         for i, stop in ipairs( edl.stop ) do
             if t < stop - 0.2 and t > edl.start[i] then
-                if true then    -- testing mute functionaly TODO
+                if edl.action[i] == 2 then --'Mute'
+                    media.mute()
+                elseif edl.action[i] == 'Dark' then 
+                    media.dark()
+                elseif edl.action[i] == 'Label' then
+                    media.label('')
+                else
                     media.go_to( stop )
-                elseif not edl.mute then
-                    edl.mute = true
-                    edl.volume = vlc.volume.get()
-                    vlc.msg.dbg( "[Fcinema] Muting" )
-                    vlc.volume.set( 0 )
                 end
                 return
             end
         end
 
-    -- Unmute scene (only if it was muted ;)
-        if edl.mute then
-            vlc.msg.dbg( "[Fcinema] Unmuting" )
-            vlc.volume.set( edl.volume )
-            edl.mute = false
+        if not edl.pressed then 
+            media.unmute()
+            media.undistort()
         end
 
     end,
-    mute = false,
 
 }
 
@@ -1658,16 +1497,17 @@ fcinema = {
         end
     end,
     
-    add_scene = function( start, stop, typ, desc, level )
+    add_scene = function ( start, stop, typ, desc, level, action )
     -- Add scene to movie content
 
     -- Safety measures
-        if not fcinema.data['level'] then
+        if not fcinema.data['action'] then
             fcinema.data['start'] = {}
             fcinema.data['stop'] = {}
             fcinema.data['desc'] = {}
             fcinema.data['type'] = {}
             fcinema.data['level'] = {}
+            fcinema.data['action'] = {}
         elseif sync.lock() then return -1 end
 
     -- Be sure all values are inserted in the same position
@@ -1679,6 +1519,10 @@ fcinema = {
         fcinema.data['type'][i] = typ
         fcinema.data['desc'][i] = desc
         fcinema.data['level'][i] = level
+        fcinema.data['action'][i] = action
+
+        vlc.msg.dbg( "[Fcinema] New scene added" )
+
         return i
     end,
 
@@ -1752,13 +1596,13 @@ sync = {
         sync.auto()
         if sync.status > 0 then return false end
         if sync.syncing == true then
-            intf.msg( style.err("Espera: ").."los cortes se estan sincronizando")
+            intf.msg( style.err("Espera: ").."los cortes se estan calibrando")
             vlc.msg.dbg( "[Fcinema] Esperando sync")
             return true
         else
             intf.manual_sync.show()
-            intf.msg( style.err("Espera: ").."antes debes sincronizar los cortes manualmente")
-            vlc.msg.dbg( "[Fcinema] Sincronizar a mano")
+            intf.msg( style.err("Espera: ").."antes debes calibrar los cortes manualmente")
+            vlc.msg.dbg( "[Fcinema] Calibrar a mano")
             return true
         end
     end,
@@ -1787,7 +1631,7 @@ sync = {
             if offset then
                 sync.apply_offset( offset )
                 sync.status = 3
-                intf.msg( style.ok( "Sincronizado ").." gracias a la base de datos")
+                intf.msg( style.ok( "Calibrado ").." gracias a la base de datos")
                 return
             end
         end
@@ -1831,11 +1675,11 @@ sync = {
                 sync.syncing = true
             else
                 sync.status = -1
-                intf.msg( style.err("Atención: ").."Usa la sincronización manual")
+                intf.msg( style.err("Atención: ").."Usa la calibración manual")
             end
         elseif config.os == "lin" then
             sync.status = -1
-            intf.msg( style.err("Atención: ").."Usa la sincronización manual")
+            intf.msg( style.err("Atención: ").."Usa la calibración manual")
         end
     end,
 
@@ -1872,7 +1716,7 @@ sync = {
     
     -- Check before wasting time    
         if not ref_info or not our_info then 
-            intf.msg( style.err("Atención: ").."Usa la sincronización manual")
+            intf.msg( style.err("Atención: ").."Usa la calibración manual")
             return
         end 
 
@@ -1908,7 +1752,7 @@ sync = {
         end
         offset = -offset
         if max < 5 then
-            intf.msg("Imposible asegurar sincronización automática")
+            intf.msg("Imposible asegurar calibración automática")
             return
         end
 
@@ -1940,7 +1784,7 @@ sync = {
     
     -- Display info
         vlc.msg.dbg( "[Fcinema] "..offset.."s of extra offset applied" )
-        intf.msg( "Sincronización de "..(math.floor(offset*100)/100).." segundos aplicada" )
+        intf.msg( "calibración de "..(math.floor(offset*100)/100).." segundos aplicada" )
         return true
     end,
 
@@ -1983,8 +1827,8 @@ net = {
     http_req = function (host, port, request)
 
         intf.msg( "Conectando con el servidor: ".. intf.progress_bar( 40 ) )
-        if not vlc.net then 
-            vlc.msg.dbg( '[Fcinema] Imposible to access "vlc.net"')
+        if not vlc.net.poll then
+            intf.msg( 'Check your internet conection') -- TODO
             return
         end
         local fd = vlc.net.connect_tcp(host, port)
@@ -2113,10 +1957,52 @@ media = {
 
     go_to = function( time )
     -- Go to specified time
-        --TODO: if not media.file.hasInput then return end
         --Set "position" as it crash if "time" is set directly
         local duration = vlc.input.item():duration()
         vlc.var.set( vlc.object.input(), "position", time / duration)
+    end,
+
+    muted = false,
+    volume = 0,
+
+    dark = function ( ... )
+        -- body
+    end,
+
+    undark = function ( ... )
+        -- body
+    end,
+
+    distort = function ( ... )
+        vlc.config.set( "gamma", 1 )
+    end,
+
+    undistort = function ( ... )
+        -- body
+    end,
+
+    label = function ( str )
+        media.dark()
+        media.mute()
+        vlc.osd.message( str, 1, "botton", 5000000 )
+    end,
+
+    mute = function ( ... )
+        if not media.muted then
+            media.muted = true
+            media.volume = vlc.volume.get()
+            vlc.msg.dbg( "[Fcinema] Muting" )
+            vlc.volume.set( 0 )
+        end
+    end,
+
+    unmute = function ( ... )
+    -- Unmute scene (only if it was muted ;)
+        if media.muted then
+            vlc.msg.dbg( "[Fcinema] Unmuting" )
+            vlc.volume.set( media.volume )
+            media.muted = false
+        end
     end,
 
     jump = function ( diff )
