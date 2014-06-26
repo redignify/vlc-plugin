@@ -142,6 +142,7 @@ lang = {
     selec = "Seleccionar",
     b_help = "Ayuda",
     add_new = "Añadir nueva",
+    incomplete_info = style.err("Atención: ").."la información de esta película puede estar incompleta",
     advanced = "Avanzado",
     init = '<b><i>Inicio</i></b>',
     help = "Ayuda sobre como usar fcinema <br>" ..
@@ -149,7 +150,7 @@ lang = {
         "película erronea <br>" ..
         "calibración manual <br>"..
         "...",
-    ------ Advenced -------------
+    ------ Advanced -------------
     l_editor = "Crea tu propia lista de escenas: ",
     b_editor = "Editor",
     l_donate = "Ayuda a mantener fcinema: ",
@@ -177,7 +178,9 @@ lang = {
     insert_offset = "Introduce los segundos de desfase: ",
     apply_offset = "Aplicar offset",
     cancel = "Cancelar",
-
+    ----- Movie selector
+    recent_files_folder = "Los ficheros deben estar en la carpeta ",
+    new_movie_warning = style.err("Importante:").." Asegurese de que la película realmente no esta",
 }
 
 ---------------------------- INTERFACE ------------------------------------
@@ -217,10 +220,10 @@ intf = {
         -- Display list of possible movies
             intf.items['list']:clear()
             local movie_list = fcinema.movie_list
-            if not movie_list or not movie_list['titles'] then return end
-            for k,v in pairs( movie_list['titles'] ) do
-                local desc = string.gsub( movie_list['directors'][k], "%s+", " ")
-                intf.items['list']:add_value( movie_list['titles'][k]..' ('..desc..')', k )
+            if not movie_list or not movie_list['Titles'] then return end
+            for k,v in pairs( movie_list['Titles'] ) do
+                local desc = string.gsub( movie_list['Directors'][k], "%s+", " ")
+                intf.items['list']:add_value( movie_list['Titles'][k]..' ('..desc..')', k )
             end
         end,
 
@@ -230,7 +233,7 @@ intf = {
         -- Prepare stuff
             intf.items['list']:clear()
             fcinema.movie_list = {}
-            fcinema.movie_list['ids'] = {}
+            fcinema.movie_list['IDs'] = {}
         -- Retrieve ALL files in config path (not just movies)
             local dir_list = vlc.net.opendir( config.path )
         -- Read file content, if it's a movie, show title and desc
@@ -238,16 +241,17 @@ intf = {
                 local movie = fcinema.read( config.path .. v )
                 if movie and type(movie)~= 'number' and movie['title'] then
                     local desc = string.gsub( movie['director'] or 'Unkown', "%s+", " ")
-                    fcinema.movie_list['ids'][k] = movie['id']--string.gsub( v, '.json', '')
+                    fcinema.movie_list['IDs'][k] = movie['id']--string.gsub( v, '.json', '')
                     intf.items['list']:add_value( movie['title']..' ('..desc..')', k )
                 end
             end
-            intf.msg( "Los ficheros deben estar en la carpeta ".. config.path )
+            intf.msg( lang.recent_files_folder .. config.path )
         end,
 
         search_name_online = function ( ... )
         -- Search movie name online
             media.file.name = intf.items["title"]:get_text()
+            media.file.cleanName = media.file.name
             local movie_list = fcinema.search_online( nil, nil, nil, media.file.name )
             fcinema.movie_list = movie_list
             intf.select_movie.fill_movies()
@@ -256,7 +260,9 @@ intf = {
 
         choose = function ( ... )
             local k = get_list_selection()
-            local id = fcinema.movie_list['ids'][k]
+            local id = fcinema.movie_list['IDs'][k]
+            media.file.name = intf.items["title"]:get_text()
+            media.file.cleanName = media.file.name
             fcinema.search( id )
             vlc.msg.dbg('[Fcinema] Selected '..id )
             fcinema.add2index( config.path .. config.user_modified_db )
@@ -270,7 +276,7 @@ intf = {
                 local title = intf.items["title"]:get_text()
                 intf.change_dlg()
 
-                intf.items['l_name'] = dlg:add_label( style.err("Importante:").." Asegurese de que la película realmente no esta", 1, 1, 5, 1 )
+                intf.items['l_name'] = dlg:add_label( lang.new_movie_warning, 1, 1, 5, 1 )
                 
                 intf.items['l_title'] = dlg:add_label( "Título: ", 1, 2, 2, 1 )
                 intf.items['title'] = dlg:add_text_input( title, 3, 2, 3, 1 )
@@ -285,10 +291,10 @@ intf = {
             end,
 
             add = function ( ... )
-                local data = { ['start'] = {}, ['stop'] = {}, ['desc'] = {}, ['type'] = {}, ['level'] = {} }
-                data['title'] = intf.items["title"]:get_text()
-                data['director'] = intf.items["director"]:get_text()
-                data['id'] = 'p'..media.file.hash   -- Add 'p' to specify manually added movie
+                local data = { ['Scenes'] = {} }
+                data['Title'] = intf.items["title"]:get_text()
+                data['Director'] = intf.items["director"]:get_text()
+                data['ImdbCode'] = 'p'..media.file.hash   -- Add 'p' to specify manually added movie
                 fcinema.load_movie( data )
                 fcinema.add2index( config.path .. config.user_modified_db )
                 fcinema.save()
@@ -309,10 +315,10 @@ intf = {
 
             intf.main.create_list()
 
-            local title = style.tit( fcinema.data['title'] ) or style.tit( ' ' )
+            local title = style.tit( fcinema.data['Title'] ) or style.tit( ' ' )
             intf.items["title"] = dlg:add_label( title, 1, 1, 7, 1)
-            intf.items["director"] = dlg:add_label( '<i><center>'..(fcinema.data['director'] or '')..'</center></i>', 1, 2, 7, 1)
-            --intf.items["pg"] = dlg:add_label( fcinema.data['pg'] or ' ', 3, 2, 1, 1)
+            intf.items["director"] = dlg:add_label( '<i><center>'..(fcinema.data['Director'] or '')..'</center></i>', 1, 2, 7, 1)
+            --intf.items["pg"] = dlg:add_label( fcinema.data['PGCode'] or ' ', 3, 2, 1, 1)
 
             intf.items['advanced'] = dlg:add_button( lang.advanced, intf.advanced.show, 3, 11, 2, 1)
             intf.items['help'] = dlg:add_button( lang.b_help, intf.help.show, 1, 11, 1, 2)
@@ -328,16 +334,16 @@ intf = {
             intf.main.show_category( 'v', 4, 7 )
             intf.main.show_category( 'p', 5, 8 )
             intf.main.show_category( 'd', 6, 9 )
-            intf.items['imdb_parentguide'] = dlg:add_label("<a href='http://www.imdb.com/title/"..fcinema.data['id'].."/parentalguide'>IMDB Parents Guide</a>", 5,5,1,1)
-            intf.items['kids-in-mind'] = dlg:add_label("<a href='http://www.kids-in-mind.com/cgi-bin/search/search.pl?q="..fcinema.data['title'].."'>Kids In Mind Guide</a>",5,4,1,1)
+            intf.items['imdb_parentguide'] = dlg:add_label("<a href='http://www.imdb.com/title/"..fcinema.data['ImdbCode'].."/parentalguide'>IMDB Parents Guide</a>", 5,5,1,1)
+            intf.items['kids-in-mind'] = dlg:add_label("<a href='http://www.kids-in-mind.com/cgi-bin/search/search.pl?q="..fcinema.data['Title'].."'>Kids In Mind Guide</a>",5,4,1,1)
             intf.main.apply_level()
             intf.main.show_warning()
             collectgarbage()
         end,
 
         show_warning = function ( ... )
-            if not fcinema.data['complete'] then
-                intf.msg( style.err("Atención: ").."la información de esta película puede estar incompleta")
+            if not fcinema.data['Complete'] then
+                intf.msg( lang.incomplete_info )
             end
         end,
 
@@ -353,9 +359,9 @@ intf = {
         end,
 
         show_poster = function ()
-            local poster = fcinema.data['poster']
+            local poster = fcinema.data['Poster']
             if poster then
-                local dst = config.path..fcinema.data['id']..'.jpg'
+                local dst = config.path..fcinema.data['ImdbCode']..'.jpg'
                 if not file_exist( dst ) then
                     net.downloadfile( poster, dst )
                 end
@@ -395,6 +401,7 @@ intf = {
             ['syn'] = 'Sync'
         },
 
+
         watch_movie = function ( ... )
         -- Be sure scene are synced
             if sync.lock() then return end
@@ -417,14 +424,13 @@ intf = {
             if not intf.items['scene_list'] then return end
             intf.items['scene_list']:clear()
             local data = fcinema.data
-            local txt, level, typ
-            for k,v in pairs( data['desc'] ) do
-                if data['type'][k] ~= 'syn' then
-                    if intf.main.actions[k] then txt = '*' else txt ='  ' end
-                    level = data['level'][k]
-                    typ = data['type'][k]
-                    intf.items['scene_list']:add_value( txt..level..typ..' '..v, k )
-                end
+            local txt, level, typ, desc
+            for k,v in pairs( data['Scenes'] ) do
+                if intf.main.actions[k] then txt = '*' else txt ='  ' end
+                level = v['Severity']
+                typ = v['Category']
+                desc = v['AdditionalInfo'] or ''
+                intf.items['scene_list']:add_value( txt..level..typ..' '..desc, k )
             end
         end,
 
@@ -453,7 +459,7 @@ intf = {
                     config.options['l_'..cat] = level
                     if intf.main.list[cat] then
                         for k,v in pairs( intf.main.list[cat] ) do
-                            if fcinema.data['level'][v] + level < 5 then
+                            if fcinema.data['Scenes'][v]['Severity'] + level <= 5 then
                                 intf.main.actions[v] = false
                                 vlc.msg.dbg( 'no skip '..v)
                             else
@@ -472,14 +478,15 @@ intf = {
             -- e.g list['violence'] = { scene 4, scene 9 }
 
             intf.main.list = {}
-            if not fcinema.data['type'] then return end
-            for k,v in pairs( fcinema.data['type'] ) do
-                if v ~= 'syn' then
-                    if not intf.main.list[v] then
-                        intf.main.list[v] = {}
+            if not fcinema.data['Scenes'] then return end
+            for k,v in pairs( fcinema.data['Scenes'] ) do
+                local category = v['Category']
+                if category ~= 'syn' then
+                    if not intf.main.list[category] then
+                        intf.main.list[category] = {}
                     end
-                    table.insert( intf.main.list[v], k )
-                    intf.main.actions[k] = true
+                    table.insert( intf.main.list[category], k )
+                    intf.main.actions[category] = true
                 end
             end
             vlc.msg.dbg( json.encode( intf.main.list ) )
@@ -588,22 +595,11 @@ intf = {
 
     manual_sync = {
         
-        sync_scene = 1,
-
         show = function ( ... )
             intf.change_dlg()
-            intf.manual_sync.sync_scene = 1
-            if fcinema.data['type'] then
-                for k,v in pairs( fcinema.data['type'] ) do
-                    if v == 'syn' then
-                        intf.manual_sync.sync_scene = k
-                        break
-                    end
-                end
-            end
 
             intf.items['l_now'] = dlg:add_label( style.ok("Tip: ").. 'Haz click en "Ahora" justo cuando veas', 1, 1, 5, 1 )
-            intf.items['l_desc'] = dlg:add_label( 'aparecer ' .. (fcinema.data['desc'][intf.manual_sync.sync_scene] or ''), 1, 2, 5, 1 )
+            intf.items['l_desc'] = dlg:add_label( 'aparecer ' .. (fcinema.data['SyncScenes'][1]['AdditionalInfo'] or ''), 1, 2, 5, 1 )
             
             intf.items['b_sync_now'] = dlg:add_button( lang.now, intf.manual_sync.now, 3, 3, 1, 1 )            
 
@@ -616,7 +612,7 @@ intf = {
             intf.items['b_next'] = dlg:add_button( ">", intf.manual_sync.jump_fordward_1, 4, 7, 1, 1)
             intf.items['b_next2'] = dlg:add_button( ">>", intf.manual_sync.jump_fordward_2, 5, 7, 1, 1)
 
-            media.go_to( fcinema.data['start'][intf.manual_sync.sync_scene] - 60 ) -- TODO not sure about this
+            media.go_to( fcinema.data['SyncScenes'][1]['Start'] - 60 ) -- TODO not sure about this
             vlc.playlist.play()
 
         end,
@@ -631,7 +627,7 @@ intf = {
         -- Apply offset
             local t = media.get_time()
             if not t then return end
-            local offset = t - fcinema.data['start'][intf.manual_sync.sync_scene]
+            local offset = t - fcinema.data['SyncScenes'][1]['Start']
             sync.apply_offset( offset )
             sync.status = 1
 
@@ -651,14 +647,14 @@ intf = {
 
         preview_o = function ( ... )
         -- Preview original scene
-            media.go_to( fcinema.data['start'][intf.manual_sync.sync_scene] - 5 )
+            media.go_to( fcinema.data['SyncScenes'][1]['Start'] - 5 )
             vlc.playlist.play()
         end,
 
         preview = function ( ... )
         -- Preview modified scene
-            edl.start[1] = fcinema.data['start'][intf.manual_sync.sync_scene]
-            edl.stop[1] = fcinema.data['stop'][intf.manual_sync.sync_scene]
+            edl.start[1] = fcinema.data['SyncScenes'][1]['Start']
+            edl.stop[1] = fcinema.data['SyncScenes'][1]['Stop']
 
             media.go_to( edl.start[1] - 5 )
             vlc.playlist.play()
@@ -681,18 +677,18 @@ intf = {
             --if sync.lock then return end
             intf.change_dlg()
 
-            intf.items['list'] = dlg:add_list( 1, 1, 4, 7 )
+            intf.items['list'] = dlg:add_list( 1, 1, 4, 6 )
 
-            intf.items['l_start'] = dlg:add_button( "Empieza: ", intf.editor.go2start, 7, 2, 1, 1 )
-            intf.items['Start'] = dlg:add_text_input( "", 8, 2, 2, 1 )
-            intf.items['b_start'] = dlg:add_button( lang.now, intf.editor.get_time, 10, 2, 1, 1)
+            intf.items['l_start'] = dlg:add_button( "Empieza: ", intf.editor.go2start, 7, 3, 1, 1 )
+            intf.items['Start'] = dlg:add_text_input( "", 8, 3, 2, 1 )
+            intf.items['b_start'] = dlg:add_button( lang.now, intf.editor.get_time, 10, 3, 1, 1)
 
-            intf.items['l_end'] = dlg:add_button( "Termina: ", intf.editor.go2end, 7, 3, 1, 1 )
-            intf.items['Stop'] = dlg:add_text_input( "", 8, 3, 2, 1 )
-            intf.items['b_end'] = dlg:add_button( lang.now, intf.editor.get_time2, 10, 3, 1, 1)
+            intf.items['l_end'] = dlg:add_button( "Termina: ", intf.editor.go2end, 7, 4, 1, 1 )
+            intf.items['Stop'] = dlg:add_text_input( "", 8, 4, 2, 1 )
+            intf.items['b_end'] = dlg:add_button( lang.now, intf.editor.get_time2, 10, 4, 1, 1)
 
-            intf.items['l_desc'] = dlg:add_label( "Descripción: ", 7, 4, 1, 1 )
-            intf.items['Desc'] = dlg:add_text_input( "",8, 4, 3, 1 )
+            intf.items['l_desc'] = dlg:add_label( "Descripción: ", 7, 7, 1, 1 )
+            intf.items['Desc'] = dlg:add_text_input( "",8, 7, 2, 1 )
 
             intf.items['l_type'] = dlg:add_label( "Tipo y nivel: ", 7, 5, 1, 1 )
             intf.items['Type'] = dlg:add_dropdown( 8, 5, 2, 1)
@@ -701,7 +697,7 @@ intf = {
                 intf.items['level']:add_value( i, i )
             end
 
-            intf.items['l_action'] = dlg:add_label( "Acción", 7, 6, 1, 1 )
+            intf.items['l_action'] = dlg:add_label( "Acción", 7, 6, 2, 1 )
             intf.items['Action'] = dlg:add_dropdown( 8, 6, 1, 1)
             intf.items['Action']:add_value( "Saltar", 1 )
             intf.items['Action']:add_value( "Sin sonido", 2 )
@@ -718,26 +714,18 @@ intf = {
                 intf.items['Type']:add_value( v, i )
             end
 
-            intf.items['b_preview'] = dlg:add_button( lang.preview, intf.editor.preview, 9, 7, 1, 1)
-            intf.items['b_add'] = dlg:add_button( lang.add_scene, intf.editor.add_scene, 10, 7, 1, 1)
-            intf.items['b_delete'] = dlg:add_button( lang.delete_scene, intf.editor.delete_scene, 7, 7, 1, 1)
-            intf.items['b_modify'] = dlg:add_button( lang.modify_scene, intf.editor.modify, 8, 7, 1, 1)
+            intf.items['b_preview'] = dlg:add_button( lang.preview, intf.editor.preview, 8, 2, 2, 1)
+            intf.items['b_add'] = dlg:add_button( lang.add_scene, intf.editor.add_scene, 2, 7, 1, 1)
+            intf.items['b_delete'] = dlg:add_button( lang.delete_scene, intf.editor.delete_scene, 1, 7, 1, 1)
+            intf.items['b_modify'] = dlg:add_button( lang.modify_scene, intf.editor.modify, 3, 7, 2, 1)
 
             intf.items['b_back2'] = dlg:add_button( "<<", intf.manual_sync.jump_backward_2, 7, 1, 1, 1)
-            intf.items['b_back'] = dlg:add_button( "<", intf.manual_sync.jump_backward_1, 8, 1, 1, 1)
-            intf.items['b_toggle'] = dlg:add_button( "Play / Pause", intf.editor.toggle, 10, 6, 1, 1)
-            intf.items['b_next'] = dlg:add_button( ">", intf.manual_sync.jump_fordward_1, 9, 1, 1, 1)
+            intf.items['b_back'] = dlg:add_button( "<", intf.manual_sync.jump_backward_1, 7, 2, 1, 1)
+            intf.items['b_toggle'] = dlg:add_button( "Play / Pause", intf.editor.toggle, 8, 1, 2, 1)
+            intf.items['b_next'] = dlg:add_button( ">", intf.manual_sync.jump_fordward_1, 10, 2, 1, 1)
             intf.items['b_next2'] = dlg:add_button( ">>", intf.manual_sync.jump_fordward_2, 10, 1, 1, 1)
 
-            --[[intf.items['b_next'] = dlg:add_button( "Frame ->", intf.editor.nextframe, 10, 1, 1, 1)
-            --intf.items['b_previous'] = dlg:add_button( "<- Frame", intf.editor.previousframe, 7, 1, 1, 1)
-            --intf.items['b_toggle'] = dlg:add_button( "Play / Pause", intf.editor.toggle, 9, 1, 1, 1)
-            intf.items['len'] = dlg:add_dropdown( 8, 1, 1, 1)
-            for i=1,8 do
-                intf.items['len']:add_value( i, i )
-            end]]
-
-            intf.items['b_upload'] = dlg:add_button( lang.share, intf.editor.request_pass, 9, 8, 1, 1)
+            intf.items['b_upload'] = dlg:add_button( lang.share, intf.editor.request_pass, 8, 8, 2, 1)
             intf.items['b_cancel'] = dlg:add_button( lang.back, intf.main.show, 10, 8, 1, 1)
             
             collectgarbage()
@@ -747,7 +735,7 @@ intf = {
 
         request_pass = function ( ... )
         -- Deny, movie is not identified globaly (??)
-            if string.match( fcinema.data['id'], 'p' ) then
+            if string.match( fcinema.data['ImdbCode'], 'p' ) then
                 intf.msg( style.err("Imposible").." compartir ficheros locales")
                 return
             end
@@ -826,9 +814,9 @@ intf = {
             if not edl.start[1] then
                 local k = get_list_selection()
                 if not k then return end
-                edl.start[1] = fcinema.data['start'][k]
-                edl.stop[1] = fcinema.data['stop'][k]
-                edl.action[1] = fcinema.data['action'][k]
+                edl.start[1] = fcinema.data['Scenes'][k]['Start']
+                edl.stop[1] = fcinema.data['Scenes'][k]['End']
+                edl.action[1] = fcinema.data['Scenes'][k]['Action']
             end
             
         -- Start the preview
@@ -886,7 +874,7 @@ intf = {
             local level = intf.items["level"]:get_value()
             
         -- Check the values are correct
-            if not start or not stop or desc == '' then
+            if not start or not stop then
                 intf.msg( lang.invalid_data )
                 return
             elseif stop < start then
@@ -933,11 +921,11 @@ intf = {
             intf.editor.selected = k
 
             local start, stop, desc, typ, level           
-            start = fcinema.data['start'][k]
-            stop = fcinema.data['stop'][k]
-            desc = fcinema.data['desc'][k]
-            typ = fcinema.data['type'][k]
-            level = fcinema.data['level'][k]
+            start = fcinema.data['Scenes'][k]['Start']
+            stop = fcinema.data['Scenes'][k]['End']
+            desc = fcinema.data['Scenes'][k]['AdditionalInfo']
+            typ = fcinema.data['Scenes'][k]['Category']
+            level = fcinema.data['Scenes'][k]['Severity']
             fcinema.del_scene( k )
         
         -- Update the list
@@ -986,12 +974,12 @@ intf = {
         -- Display scenes on editor interface list
             intf.items['list']:clear()
             local data = fcinema.data
-            for k,v in pairs( data['stop'] ) do
-                local start_h = intf.to_hour( data['start'][k], 1 )
-                local stop_h = intf.to_hour( data['stop'][k], 1 )
-                local typ = data['type'][k]
-                local desc = data['desc'][k]
-                local level = data['level'][k]
+            for k,v in pairs( data['Scenes'] ) do
+                local start_h = intf.to_hour( v['Start'], 1 )
+                local stop_h = intf.to_hour( v['End'], 1 )
+                local typ = v['Category']
+                local desc = v['AdditionalInfo']
+                local level = v['Severity']
                 intf.items['list']:add_value( typ..level.." "..start_h .." "..desc, k )
             end
         end,
@@ -1176,9 +1164,9 @@ edl = {
         edl.stop = {}
         for k,v in pairs( intf.main.actions ) do
             if v then
-                table.insert( edl.start, fcinema.data['start'][k] - edl.start_margin )
-                table.insert( edl.stop, fcinema.data['stop'][k] + edl.stop_margin )
-                table.insert( edl.action, fcinema.data['action'][k] )
+                table.insert( edl.start, fcinema.data['Scenes'][k]['Start'] - edl.start_margin )
+                table.insert( edl.stop, fcinema.data['Scenes'][k]['End'] + edl.stop_margin )
+                table.insert( edl.action, fcinema.data['Scenes'][k]['Action'] )
             end
         end
         vlc.msg.dbg( '[Fcinema]'..json.encode( edl.start ) .. json.encode( edl.stop ) )
@@ -1194,7 +1182,7 @@ edl = {
             vlc.var.del_callback( vlc.object.libvlc(), "key-pressed", edl.key_press ) -- TODO testing
             vlc.osd.message( "fcinema desactivado", 1, "botton", 5000000 )
             vlc.playlist.play()
-            vlc.playlist.pause()    -- FIXME: this toggle!!
+            vlc.playlist.pause()    -- FIXME: on linux this toggle!!
             edl.active = false
         end
 
@@ -1265,6 +1253,7 @@ edl = {
         edl.last_time = t
         --vlc.msg.dbg( '[Fcinema] Comprobando tiempo ' .. t )
 
+    -- Fast scene edition
         if edl.pressed and edl.last_pressed < t-0.7 then
             edl.pressed = false
             fcinema.add_scene( edl.first_pressed - 0.8, edl.last_pressed-0.1, 'u', 'Escena sin clasificar', 1, 1 )
@@ -1301,7 +1290,7 @@ edl = {
 fcinema = {
 
     api_url = "http://fcinema.org/api.php",
-    data = nil, --{ ['start'] = {}, ['stop'] = {}, ['desc'] = {}, ['type'] = {} },
+    data = nil,
     movie_list = nil,
 
     search = function( id )
@@ -1327,16 +1316,10 @@ fcinema = {
         if data == nil then
             vlc.msg.dbg( "[Fcinema] Looking on fcinema.org")
             data = fcinema.search_online( id, media.file.hash or nil, media.file.bytesize, media.file.name )
-            -- Force user to upgrade if there is a new version available
-            if data and data['new_version'] then
-                intf.loading.show()
-                intf.msg( "Nueva versión disponible " .. data['new_version'] )
-                return
-            end
         end
     
     -- Search in local cache
-        if data == nil or ( not data['title'] and not data['titles'] ) then
+        if data == nil or ( not data['Title'] and not data['Titles'] ) then
             vlc.msg.dbg( "[Fcinema] Looking on local cache")
             id = fcinema.hash2id( config.hash2id_db )
             if id then
@@ -1350,16 +1333,16 @@ fcinema = {
             intf.select_movie.show()
             intf.msg( "Lo sentimos no hay información disponible")
             vlc.msg.dbg( "[Fcinema] No info, displaying searching dialog")
-        elseif data['title'] then
+        elseif data['Title'] then
             vlc.msg.dbg( "[Fcinema] Readed: " .. json.encode( data ) .."\n" )
             fcinema.load_movie( data )
             intf.main.show()
-        elseif data['titles'] then
+        elseif data['Titles'] then
             vlc.msg.dbg( "[Fcinema] Readed: " .. json.encode( data ) .."\n" )
             fcinema.movie_list = data
             intf.select_movie.show()
         end
-                
+
         return true
     end,
 
@@ -1384,7 +1367,7 @@ fcinema = {
         local data = string.match(response, '{(.+)}')
         if data then
             data = json.decode( '{'..data..'}' )
-            if data and data['title'] then
+            if data and data['Title'] then
                 fcinema.load_movie( data )
                 fcinema.add2index( config.path .. config.hash2id_db )
                 fcinema.save()
@@ -1425,7 +1408,7 @@ fcinema = {
         params = params .. "action=modify"
         params = params .. "&agent=" .. config.agent
         params = params .. "&version=" .. config.version
---        params = params .. "&imdb_code=" .. fcinema.data['id']
+--        params = params .. "&imdb_code=" .. fcinema.data['ImdbCode']
         params = params .. "&data=".. data
         params = params .. "&username=" .. user or ""
         params = params .. "&password=" .. pass or ""
@@ -1457,7 +1440,7 @@ fcinema = {
         local data = json.encode( sync.unsync() )
 
     -- Write content to file
-        local file = config.path ..fcinema.data['id'] .. ".json"
+        local file = config.path ..fcinema.data['ImdbCode'] .. ".json"
         system.write( file, data )
         intf.msg( style.ok( 'Guardado con exito') )
 
@@ -1473,7 +1456,7 @@ fcinema = {
     -- Remove current hash from index, avoid duplicates
         index = string.gsub( index, media.file.hash .. ';(.-);(.-);', '' )
     -- Add hash and save
-        index = index .. media.file.hash ..';'..fcinema.data['id']..';0;\n'
+        index = index .. media.file.hash ..';'..fcinema.data['ImdbCode']..';0;\n'
         system.write( db, index )
     end,
 
@@ -1500,52 +1483,51 @@ fcinema = {
     add_scene = function ( start, stop, typ, desc, level, action )
     -- Add scene to movie content
 
-    -- Safety measures
-        if not fcinema.data['action'] then
-            fcinema.data['start'] = {}
-            fcinema.data['stop'] = {}
-            fcinema.data['desc'] = {}
-            fcinema.data['type'] = {}
-            fcinema.data['level'] = {}
-            fcinema.data['action'] = {}
-        elseif sync.lock() then return -1 end
+        local scene = {}
+        if typ == 'syn' then
+            scene['Start'] = start
+            scene['End'] = stop
+            scene['AdditionalInfo'] = desc or ''
 
-    -- Be sure all values are inserted in the same position
-        local i = table.maxn( fcinema.data['stop'] ) + 1
+            if not fcinema.data['SyncScenes'] then
+                fcinema.data['SyncScenes'] = {}
+            elseif sync.lock() then return -1 end
 
-    -- Insert values
-        fcinema.data['start'][i] = start
-        fcinema.data['stop'][i] = stop
-        fcinema.data['type'][i] = typ
-        fcinema.data['desc'][i] = desc
-        fcinema.data['level'][i] = level
-        fcinema.data['action'][i] = action
+        -- Get index
+            local i = table.maxn( fcinema.data['SyncScenes'] ) + 1
 
-        vlc.msg.dbg( "[Fcinema] New scene added" )
+        -- Insert values
+            fcinema.data['SyncScenes'][i] = scene
+
+            vlc.msg.dbg( "[Fcinema] New scene added" )
+
+        else
+            scene['Start'] = start
+            scene['End'] = stop
+            scene['Category'] = typ
+            scene['Severity'] = level
+            scene['Action'] = action
+            scene['AdditionalInfo'] = desc or ''
+
+            if not fcinema.data['Scenes'] then
+                fcinema.data['Scenes'] = {}
+            elseif sync.lock() then return -1 end
+
+        -- Get index
+            local i = table.maxn( fcinema.data['Scenes'] ) + 1
+
+        -- Insert values
+            fcinema.data['Scenes'][i] = scene
+
+            vlc.msg.dbg( "[Fcinema] New scene added" )
+        end
 
         return i
     end,
 
-    modify_scene = function ( start, stop, typ, desc, level, i )
-    -- Modfify scene content
-
-    -- Insert values
-        fcinema.data['start'][i] = start
-        fcinema.data['stop'][i] = stop
-        fcinema.data['type'][i] = typ
-        fcinema.data['desc'][i] = desc
-        fcinema.data['level'][i] = level
-    -- Save
-        fcinema.save()
-    end,
-
     del_scene = function ( scene_number )
-    -- Delete scene from movie content
-        table.remove( fcinema.data['start'], scene_number )
-        table.remove( fcinema.data['stop'], scene_number )
-        table.remove( fcinema.data['desc'], scene_number )
-        table.remove( fcinema.data['type'], scene_number )
-        table.remove( fcinema.data['level'], scene_number )
+    -- Delete scene 'from' movie content
+        table.remove( fcinema.data['Scenes'], scene_number )
         fcinema.save()
     end,
 }
@@ -1617,17 +1599,17 @@ sync = {
         if sync.status > 0 then return end
 
     -- No scenes -> first used this movie -> sync has no sense, set as ref
-        if not fcinema.data['start'][1] then
-            fcinema.data['previous_sync'] = {}
-            fcinema.data['previous_sync'][media.file.hash] = 0
+        if not fcinema.data['Scenes'][1] then
+            fcinema.data['PreviousSync'] = {}
+            fcinema.data['PreviousSync'][media.file.hash] = 0
             sync.status = 1
             fcinema.save()
             return
         end
 
     -- Look if this file/hash has being synced before
-        if fcinema.data['previous_sync'] and sync.status <= 0 then
-            local offset = fcinema.data['previous_sync'][media.file.hash]
+        if fcinema.data['PreviousSync'] and sync.status <= 0 then
+            local offset = fcinema.data['PreviousSync'][media.file.hash]
             if offset then
                 sync.apply_offset( offset )
                 sync.status = 3
@@ -1637,7 +1619,7 @@ sync = {
         end
 
     -- Request scene shot detection
-        local ref = fcinema.data['sync_info']   -- Autosync reference information
+        local ref = fcinema.data['Shots']   -- Autosync reference information
         if ref and not sync.syncing and sync.status == 0 then
             sync.request_sync_info()
         end
@@ -1705,8 +1687,8 @@ sync = {
         end
         sync.syncing = false
         sync.sync_info = sync_info
-        if not fcinema.data['sync_info'] then
-            fcinema.data['sync_info'] = sync_info
+        if not fcinema.data['Shots'] then
+            fcinema.data['Shots'] = sync_info
         end
         vlc.msg.dbg( '[Fcinema] Readed sync info is: '..json.encode( sync_info ) )
         return sync_info
@@ -1767,19 +1749,19 @@ sync = {
         if not type( offset ) == 'number' then return end
 
     -- Apply offset
-        for k,v in pairs( fcinema.data['start']) do
-            fcinema.data['start'][k] = fcinema.data['start'][k] + offset
-            fcinema.data['stop'][k] = fcinema.data['stop'][k] + offset
+        for k,v in pairs( fcinema.data['Scenes']) do
+            fcinema.data['Scenes'][k]['Start'] = fcinema.data['Scenes'][k]['Start'] + offset
+            fcinema.data['Scenes'][k]['End'] = fcinema.data['Scenes'][k]['End'] + offset
         end
 
     -- Update applied offset
         sync.applied_offset = sync.applied_offset + offset
     
     -- Update sync reference
-        if not fcinema.data['previous_sync'] then
-            fcinema.data['previous_sync'] = {}
+        if not fcinema.data['PreviousSync'] then
+            fcinema.data['PreviousSync'] = {}
         end
-        fcinema.data['previous_sync'][media.file.hash] = sync.applied_offset
+        fcinema.data['PreviousSync'][media.file.hash] = sync.applied_offset
         fcinema.save()
     
     -- Display info
@@ -1791,9 +1773,9 @@ sync = {
     unsync = function ( )
     -- Restore scene sync to original, undo applied offsets (this must be done before sharing/saving the file)
         local data = deepcopy( fcinema.data ) -- create a copy of the table
-        for k,v in pairs( data['start']) do
-            data['start'][k] = data['start'][k] - sync.applied_offset
-            data['stop'][k] = data['stop'][k] - sync.applied_offset
+        for k,v in pairs( data['Scenes']) do
+            data['Scenes'][k]['Start'] = data['Scenes'][k]['Start'] - sync.applied_offset
+            data['Scenes'][k]['End'] = data['Scenes'][k]['End'] - sync.applied_offset
         end
         intf.msg( '[Fcinema] Data prepared to share/save')
         return data
@@ -1827,8 +1809,8 @@ net = {
     http_req = function (host, port, request)
 
         intf.msg( "Conectando con el servidor: ".. intf.progress_bar( 40 ) )
-        if not vlc.net.poll then
-            intf.msg( 'Check your internet conection') -- TODO
+        if not vlc.net then
+            intf.msg( 'No network access')
             return
         end
         local fd = vlc.net.connect_tcp(host, port)
@@ -1841,7 +1823,7 @@ net = {
         intf.msg( "Esperando respuesta: ".. intf.progress_bar( 70 ) )
         vlc.net.poll(pollfds)
         intf.msg( "Recibiendo respuesta: ".. intf.progress_bar( 80 ) )
-        local response = vlc.net.recv(fd, 10024)
+        local response = vlc.net.recv(fd, 1024*512) -- FIXME
         vlc.msg.dbg( '[Fcinema] Datos recibidos del servidor: '.. response )
         local headerStr, body = string.match(response, "(.-\r?\n)\r?\n(.*)")
         local header = net.parse_header(headerStr)
@@ -2007,23 +1989,10 @@ media = {
 
     jump = function ( diff )
     -- Jump specified time
-        -- TODO sometimes crash when jumping backwards
         local t = media.get_time()
         if not t then return end
         vlc.msg.dbg("[Fcinema] Jumping "..diff.."s from "..t.."s.")
         vlc.var.set( vlc.object.input(), "time", t + diff )
-        --vlc.msg.err( '[Fcinema] Jumped to '..t+diff..' arrived at '..media.get_time())
-        --if media.get_time() + diff > t then end
-        --media.go_to( t + diff )
-
-        --local duration = vlc.input.item():duration()
-        --local position = vlc.var.get( vlc.object.input(), "position")
-
-        --vlc.var.set( vlc.object.input(), "position", position +  ( diff / duration ) )
-
-        --local position2 = vlc.var.get( vlc.object.input(), "position")
-        --vlc.msg.err( "[Fcinema] Jumped difference ".. position/duration - position2/duration )
-
     end,
 
     get_time = function()
