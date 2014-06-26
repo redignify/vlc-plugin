@@ -56,18 +56,6 @@ function activate()
 end
 
 
---[[
-TODO escuchar inputs del teclado
-
-vlc.var.add_callback( vlc.object.libvlc(), "key-pressed", key_press )
-function key_press( var, old, new, data )
-  local key = new
-  vlc.msg.dbg( key )
-end
-]]--
-
-
-
 function close()
     deactivate()
 end
@@ -205,13 +193,13 @@ intf = {
         -- Display interface for selecting movie
             intf.change_dlg()
             intf.items['header'] = dlg:add_label( lang.which_movie, 1, 1, 4, 1 )
-            intf.items['list'] = dlg:add_list( 1, 3, 7, 7 )
-            intf.items["message"] = dlg:add_label("", 1, 10, 7, 1)
-            intf.items['title'] = dlg:add_text_input( media.file.cleanName, 1, 2, 6, 1 )
-            intf.items['b_search'] = dlg:add_button( lang.name_search, intf.select_movie.search_name_online, 7, 2, 1, 1 )
-            intf.items['b_choose'] = dlg:add_button( lang.selec, intf.select_movie.choose, 7, 11, 1, 1 )
-            intf.items['b_cache'] = dlg:add_button( lang.cache, intf.select_movie.cache, 2, 11, 1, 1)
-            intf.items['local'] = dlg:add_button( lang.add_new, intf.select_movie.new.show, 1, 11, 1, 1 )
+            intf.items['list'] = dlg:add_list( 1, 3, 4, 1 )
+            intf.items["message"] = dlg:add_label(" ", 1, 4, 4, 1)
+            intf.items['title'] = dlg:add_text_input( media.file.cleanName, 1, 2, 3, 1 )
+            intf.items['b_search'] = dlg:add_button( lang.name_search, intf.select_movie.search_name_online, 4, 2, 1, 1 )
+            intf.items['b_choose'] = dlg:add_button( lang.selec, intf.select_movie.choose, 4, 5, 1, 1 )
+            intf.items['b_cache'] = dlg:add_button( lang.cache, intf.select_movie.cache, 2, 5, 1, 1)
+            intf.items['local'] = dlg:add_button( lang.add_new, intf.select_movie.new.show, 1, 5, 1, 1 )
 
             intf.select_movie.fill_movies()
         end,
@@ -279,10 +267,10 @@ intf = {
                 intf.items['l_name'] = dlg:add_label( lang.new_movie_warning, 1, 1, 5, 1 )
                 
                 intf.items['l_title'] = dlg:add_label( "Título: ", 1, 2, 2, 1 )
-                intf.items['title'] = dlg:add_text_input( title, 3, 2, 3, 1 )
+                intf.items['title'] = dlg:add_text_input( title, 2, 2, 3, 1 )
 
                 intf.items['l_director'] = dlg:add_label( "Director: ", 1, 3, 2, 1 )
-                intf.items['director'] = dlg:add_text_input( "", 3, 3, 3, 1 )
+                intf.items['director'] = dlg:add_text_input( "", 2, 3, 3, 1 )
 
                 intf.items["message"] = dlg:add_label("", 1, 4, 3, 1)
 
@@ -320,11 +308,11 @@ intf = {
             intf.items["director"] = dlg:add_label( '<i><center>'..(fcinema.data['Director'] or '')..'</center></i>', 1, 2, 7, 1)
             --intf.items["pg"] = dlg:add_label( fcinema.data['PGCode'] or ' ', 3, 2, 1, 1)
 
-            intf.items['advanced'] = dlg:add_button( lang.advanced, intf.advanced.show, 3, 11, 2, 1)
-            intf.items['help'] = dlg:add_button( lang.b_help, intf.help.show, 1, 11, 1, 2)
-            intf.items['watch'] = dlg:add_button( lang.view_movie, intf.main.list_view, 5, 11, 1, 1)
+            intf.items['advanced'] = dlg:add_button( lang.advanced, intf.advanced.show, 3, 8, 2, 1)
+            intf.items['help'] = dlg:add_button( lang.b_help, intf.help.show, 1, 8, 1, 2)
+            intf.items['watch'] = dlg:add_button( lang.view_movie, intf.main.list_view, 5, 8, 1, 1)
           
-            intf.items["message"] = dlg:add_label("", 1, 10, 10, 1)
+            intf.items["message"] = dlg:add_label("", 1, 7, 10, 1)
 
             --intf.main.show_poster()
             --intf.main.toggle_list()
@@ -350,12 +338,18 @@ intf = {
         list_view = function ( ... )
             intf.main.apply_level()
             intf.change_dlg()
-            intf.items["l_info"] = dlg:add_label("Fcinema eliminará las escenas con *", 5, 1, 5, 1)
-            intf.items["message"] = dlg:add_label("", 5, 9, 5, 1)
+            intf.items["l_info"] = dlg:add_label("Fcinema eliminará las escenas con *", 1, 1, 5, 1)
+            intf.items["message"] = dlg:add_label("", 1, 4, 4, 1)
             intf.main.show_warning()
-            intf.items['watch'] = dlg:add_button( lang.view_movie, intf.main.watch_movie, 8, 8, 1, 1)
-            intf.items['back'] = dlg:add_button( "Atras", intf.main.show, 5, 8, 1, 1)
-            intf.main.toggle_list()
+            intf.items['watch'] = dlg:add_button( lang.view_movie, intf.main.watch_movie, 4, 3, 1, 1)
+            intf.items['back'] = dlg:add_button( "Atras", intf.main.show, 1, 3, 1, 1)
+
+            intf.items['scene_list'] = dlg:add_list( 1, 2, 4, 1 )
+            intf.main.fill_list()
+            intf.items['b_skip'] = dlg:add_button( 'Skip', intf.main.skip, 2, 3, 1, 1)
+            intf.items['b_nskip'] = dlg:add_button( 'No skip', intf.main.nskip, 3, 3, 1, 1)
+
+            --intf.main.toggle_list()
         end,
 
         show_poster = function ()
@@ -395,9 +389,17 @@ intf = {
 
         label = {
             ['s'] = 'Sex & Nudity',
+            ['ss'] = '- Sex',
+            ['sn'] = '- Nudity',
+            ['ss'] = '- Talking about',
             ['v'] = 'Violence & Gore',
             ['p'] = 'Profanity',
+            ['pb'] = '- Blasphemy',
+            ['ps'] = '- Swearworkd',
             ['d'] = 'Drugs',
+            ['da'] = '- Alcohol/Tobaco',
+            ['dt'] = '- Others',
+            ['p'] = 'Profanity',
             ['syn'] = 'Sync'
         },
 
@@ -411,7 +413,7 @@ intf = {
 
         toggle_list = function( ... )
            if not intf.items['scene_list'] then
-                intf.items['scene_list'] = dlg:add_list( 5, 3, 4, 4 )
+                intf.items['scene_list'] = dlg:add_list( 1, 4, 2, 2 )
                 intf.main.fill_list()
                 intf.items['b_skip'] = dlg:add_button( 'Skip', intf.main.skip, 6, 8, 1, 1)
                 intf.items['b_nskip'] = dlg:add_button( 'No skip', intf.main.nskip, 7, 8, 1, 1)
@@ -518,16 +520,16 @@ intf = {
 
             --intf.items['b_auto_sync'] = dlg:add_button( lang.b_auto_sync, sync.auto, 4, 7, 1, 1 )
 
-            intf.items['b_change_lang'] = dlg:add_button( lang.b_change_lang, intf.advanced.lang, 4, 7, 1, 1 )
+            intf.items['b_change_lang'] = dlg:add_button( lang.b_change_lang, intf.advanced.lang, 4, 1, 1, 1 )
 
             --intf.items['l_contribute'] = dlg:add_label( "Fcinema esta desarrollado por una comunidad de voluntarios" ,1, 6, 1, 1 )
-            intf.items['language'] = dlg:add_dropdown( 3, 7, 1, 1)
+            intf.items['language'] = dlg:add_dropdown( 3, 1, 1, 1)
             intf.items['language']:add_value( "Spanish", 2 )
             intf.items['language']:add_value( "English", 1 )
 
-            intf.items["message"] = dlg:add_label("", 1, 8, 7, 1)
+            intf.items["message"] = dlg:add_label("", 1, 7, 7, 1)
             --intf.items['l_main'] = dlg:add_label( "Empieza: ", 1, 5, 1, 1 )
-            intf.items['b_main'] = dlg:add_button( lang.back, intf.main.show, 4, 9, 1, 1)
+            intf.items['b_main'] = dlg:add_button( lang.back, intf.main.show, 4, 8, 1, 1)
         end,
 
         donate = function ( ... )
@@ -617,9 +619,9 @@ intf = {
 
         end,
 
-        jump_backward_1 = function() media.jump( -0.3 ) end,
-        jump_fordward_1 = function() media.jump( 0.1 ) end,
-        jump_backward_2 = function() media.jump( -2.1 ) end,
+        jump_backward_1 = function() media.jump( 3/10 ) end,
+        jump_fordward_1 = function() media.jump( 1/10 ) end,
+        jump_backward_2 = function() media.jump( 21/10 ) end,
         jump_fordward_2 = function() media.jump( 2 ) end,
 
         now = function ( )
@@ -788,13 +790,13 @@ intf = {
         nextframe = function ( ... )
             intf.msg("")
             local len = intf.items["len"]:get_value()
-            media.jump( len*0.2 )
+            media.jump( len*2/10 )
         end,
 
         previousframe = function ( ... )
             intf.msg("")
             local len = intf.items["len"]:get_value()
-            media.jump( -len*0.2 )
+            media.jump( -len*2/10 )
         end,
 
         toggle = function ( )
@@ -1011,6 +1013,12 @@ intf = {
         end
         intf.items = nil
         intf.items = {}
+        --if dlg ~= nil then 
+        --    dlg:delete() -- Throw an error
+            --dlg:hide() 
+        --end
+    
+        --dlg = nil
         if not dlg then dlg = vlc.dialog( "Family Cinema (Beta)") end
         collectgarbage()
     end,
@@ -1137,8 +1145,8 @@ edl = {
     action= {},
     active = false,
     preview_active = 0,
-    start_margin = 0.2,
-    stop_margin = 0.1,
+    start_margin = 2/10,
+    stop_margin = 1/10,
     last_time = 0,
 
     activate = function( )
@@ -1207,7 +1215,7 @@ edl = {
         vlc.msg.dbg( '[Fcinema] Comprobando tiempo ' .. t )
 
     -- Check if current time is in "dark zone" and stop preview
-        if t < edl.stop[1] - 0.2 and t > edl.start[1] then
+        if t < edl.stop[1] - 2/10 and t > edl.start[1] then
             if edl.action[1] == 2 then --'Mute'
                 media.mute()
             elseif edl.action[1] == 'Dark' then 
@@ -1254,15 +1262,15 @@ edl = {
         --vlc.msg.dbg( '[Fcinema] Comprobando tiempo ' .. t )
 
     -- Fast scene edition
-        if edl.pressed and edl.last_pressed < t-0.7 then
+        if edl.pressed and edl.last_pressed < t-7/10 then
             edl.pressed = false
-            fcinema.add_scene( edl.first_pressed - 0.8, edl.last_pressed-0.1, 'u', 'Escena sin clasificar', 1, 1 )
+            fcinema.add_scene( edl.first_pressed - 8/10, edl.last_pressed-1/10, 'u', 'Escena sin clasificar', 1, 1 )
             media.unmute()
         end
 
     -- Check if current time is in "dark zone"
         for i, stop in ipairs( edl.stop ) do
-            if t < stop - 0.2 and t > edl.start[i] then
+            if t < stop - 2/10 and t > edl.start[i] then
                 if edl.action[i] == 2 then --'Mute'
                     media.mute()
                 elseif edl.action[i] == 'Dark' then 
@@ -1675,7 +1683,7 @@ sync = {
             os.remove( config.path.."cuts.log")
             os.remove( config.path.."cmd.avi")
             for frame, prob in string.gfind( log, "([^%s]+)%s+([^%s]+)%s+[01]") do
-                if prob+0 > 0.1 then
+                if prob+0 > 1/10 then
                    table.insert( sync_info['frame'] , frame+0 )
                    table.insert( sync_info['prob'] , math.floor(prob*100) )
                    --sync_info['frame'] = prob
@@ -1713,7 +1721,7 @@ sync = {
             for ko,vo in pairs( our_info['frame'] ) do
                 po = our_info['prob'][ko]
                 d = vr/fps_r - vo/fps_o
-                d = math.floor( d * 25 )/25 + 0.5/25
+                d = math.floor( d * 25 )/25 + 5/10/25
                 --d = vr - vo
                 if not sum[ d ] then
                     sum[ d ] =  1 - math.abs( pr - po ) / (pr + po)
@@ -2163,7 +2171,7 @@ media = {
             end
             
             data_start = file:read(chunk_size)
-            if not data_start then
+            if not data_start or not file:seek("end", -chunk_size) then
                 vlc.msg.dbg("[Fcinema] Imposible leer fichero")
                 media.file.hash = 'n'..media.file.stat.creation_time
                 return false
@@ -2174,6 +2182,7 @@ media = {
         end
         
     -- Compute hash
+        vlc.msg.dbg("[Fcinema] Computing hash")
         local lo = size
         local hi = 0
         local o,a,b,c,d,e,f,g,h
