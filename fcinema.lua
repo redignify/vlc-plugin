@@ -303,10 +303,11 @@ intf = {
 
             intf.main.create_list()
 
-            local title = style.tit( fcinema.data['Title'] ) or style.tit( ' ' )
+            local title = style.tit( fcinema.data['Title'] or ' ' )
             intf.items["title"] = dlg:add_label( title, 1, 1, 7, 1)
-            intf.items["director"] = dlg:add_label( '<i><center>'..(fcinema.data['Director'] or '')..'</center></i>', 1, 2, 7, 1)
-            --intf.items["pg"] = dlg:add_label( fcinema.data['PGCode'] or ' ', 3, 2, 1, 1)
+            local subheader = '<i><center>'..(fcinema.data['Director'] or '')..'  '..( fcinema.data['PGCode'] or '' ) ..'</center></i>'
+            intf.items["director"] = dlg:add_label( subheader, 1, 2, 7, 1)
+        
 
             intf.items['advanced'] = dlg:add_button( lang.advanced, intf.advanced.show, 3, 8, 2, 1)
             intf.items['help'] = dlg:add_button( lang.b_help, intf.help.show, 1, 8, 1, 2)
@@ -389,17 +390,9 @@ intf = {
 
         label = {
             ['s'] = 'Sex & Nudity',
-            ['ss'] = '- Sex',
-            ['sn'] = '- Nudity',
-            ['ss'] = '- Talking about',
             ['v'] = 'Violence & Gore',
             ['p'] = 'Profanity',
-            ['pb'] = '- Blasphemy',
-            ['ps'] = '- Swearworkd',
             ['d'] = 'Drugs',
-            ['da'] = '- Alcohol/Tobaco',
-            ['dt'] = '- Others',
-            ['p'] = 'Profanity',
             ['syn'] = 'Sync'
         },
 
@@ -600,8 +593,10 @@ intf = {
         show = function ( ... )
             intf.change_dlg()
 
-            intf.items['l_now'] = dlg:add_label( style.ok("Tip: ").. 'Haz click en "Ahora" justo cuando veas', 1, 1, 5, 1 )
-            intf.items['l_desc'] = dlg:add_label( 'aparecer ' .. (fcinema.data['SyncScenes'][1]['AdditionalInfo'] or ''), 1, 2, 5, 1 )
+            intf.manual_sync.get_scenes()
+
+            intf.items['l_now'] = dlg:add_label( style.ok("Tip: ").. 'Haz click en "Ahora" justo cuando veas aparecer', 1, 1, 5, 1 )
+            intf.items['l_desc'] = dlg:add_label( (fcinema.data['SyncScenes'][1]['AdditionalInfo'] or ''), 1, 2, 5, 1 )
             
             intf.items['b_sync_now'] = dlg:add_button( lang.now, intf.manual_sync.now, 3, 3, 1, 1 )            
 
@@ -614,14 +609,24 @@ intf = {
             intf.items['b_next'] = dlg:add_button( ">", intf.manual_sync.jump_fordward_1, 4, 7, 1, 1)
             intf.items['b_next2'] = dlg:add_button( ">>", intf.manual_sync.jump_fordward_2, 5, 7, 1, 1)
 
-            media.go_to( fcinema.data['SyncScenes'][1]['Start'] - 60 ) -- TODO not sure about this
+            media.go_to( fcinema.data['SyncScenes'][1]['Start'] - 30 ) -- TODO not sure about this (60s)
             vlc.playlist.play()
 
         end,
 
-        jump_backward_1 = function() media.jump( 3/10 ) end,
+        get_scenes = function ( ... )
+            fcinema.data['SyncScenes'] = {}
+            for k,v in pairs( fcinema.data['Scenes'] ) do
+                if 'syn' == v['Category'] then
+                    table.insert( fcinema.data['SyncScenes'] , v )
+                end
+            end
+            vlc.msg.dbg('[Fcinema]'..json.encode(fcinema.data['SyncScenes']))
+        end,
+
+        jump_backward_1 = function() media.jump( -3/10 ) end,
         jump_fordward_1 = function() media.jump( 1/10 ) end,
-        jump_backward_2 = function() media.jump( 21/10 ) end,
+        jump_backward_2 = function() media.jump( -21/10 ) end,
         jump_fordward_2 = function() media.jump( 2 ) end,
 
         now = function ( )
@@ -656,7 +661,7 @@ intf = {
         preview = function ( ... )
         -- Preview modified scene
             edl.start[1] = fcinema.data['SyncScenes'][1]['Start']
-            edl.stop[1] = fcinema.data['SyncScenes'][1]['Stop']
+            edl.stop[1] = fcinema.data['SyncScenes'][1]['End']
 
             media.go_to( edl.start[1] - 5 )
             vlc.playlist.play()
@@ -744,12 +749,10 @@ intf = {
 
         -- Deny, no scene for manual sync
             local have_sync = false
-            if fcinema.data['type'] then
-                for k,v in pairs( fcinema.data['type'] ) do
-                    if v ~= 'syn' then
-                        have_sync = true
-                        break
-                    end
+            for k,v in pairs( fcinema.data['Scenes'] ) do
+                if v['Category'] == 'syn' then
+                    have_sync = true
+                    break
                 end
             end
             if not have_sync then
@@ -975,8 +978,7 @@ intf = {
         fill_list = function()
         -- Display scenes on editor interface list
             intf.items['list']:clear()
-            local data = fcinema.data
-            for k,v in pairs( data['Scenes'] ) do
+            for k,v in pairs( fcinema.data['Scenes'] ) do
                 local start_h = intf.to_hour( v['Start'], 1 )
                 local stop_h = intf.to_hour( v['End'], 1 )
                 local typ = v['Category']
@@ -1492,43 +1494,24 @@ fcinema = {
     -- Add scene to movie content
 
         local scene = {}
-        if typ == 'syn' then
-            scene['Start'] = start
-            scene['End'] = stop
-            scene['AdditionalInfo'] = desc or ''
+        scene['Start'] = start
+        scene['End'] = stop
+        scene['Category'] = typ
+        scene['Severity'] = level
+        scene['Action'] = action
+        scene['AdditionalInfo'] = desc or ''
 
-            if not fcinema.data['SyncScenes'] then
-                fcinema.data['SyncScenes'] = {}
-            elseif sync.lock() then return -1 end
+        if not fcinema.data['Scenes'] then
+            fcinema.data['Scenes'] = {}
+        elseif sync.lock() then return -1 end
 
-        -- Get index
-            local i = table.maxn( fcinema.data['SyncScenes'] ) + 1
+    -- Get index
+        local i = table.maxn( fcinema.data['Scenes'] ) + 1
 
-        -- Insert values
-            fcinema.data['SyncScenes'][i] = scene
+    -- Insert values
+        fcinema.data['Scenes'][i] = scene
 
-            vlc.msg.dbg( "[Fcinema] New scene added" )
-
-        else
-            scene['Start'] = start
-            scene['End'] = stop
-            scene['Category'] = typ
-            scene['Severity'] = level
-            scene['Action'] = action
-            scene['AdditionalInfo'] = desc or ''
-
-            if not fcinema.data['Scenes'] then
-                fcinema.data['Scenes'] = {}
-            elseif sync.lock() then return -1 end
-
-        -- Get index
-            local i = table.maxn( fcinema.data['Scenes'] ) + 1
-
-        -- Insert values
-            fcinema.data['Scenes'][i] = scene
-
-            vlc.msg.dbg( "[Fcinema] New scene added" )
-        end
+        vlc.msg.dbg( "[Fcinema] New scene added" )
 
         return i
     end,
