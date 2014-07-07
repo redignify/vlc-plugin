@@ -132,12 +132,14 @@ lang = {
     add_new = "Añadir nueva",
     incomplete_info = style.err("Atención: ").."la información de esta película puede estar incompleta",
     advanced = "Avanzado",
+    b_next = "Siguiente",
     init = '<b><i>Inicio</i></b>',
-    help = "Ayuda sobre como usar fcinema <br>" ..
-        "un poco de about y thanks a opensub ... <br>"..
-        "película erronea <br>" ..
-        "calibración manual <br>"..
-        "...",
+    help = "<h2>Ayuda sobre como usar fcinema</h2>" ..
+        "<p><b>Clasificación de escenas: </b> Las escenas estan clasicadas por tipo y gravedad. Para entender en detalle los niveles de gravedad visita <a href='http://www.fcinema.org/categories'>fcinema.org/categories</a>. Si buscas más detalles sobre la escena puedes encontrar también segundos, subtipo y/o texto explicativo.</p>"..
+        "<p><b>Añadir escenas: </b> Asegurate de haber entendido bien los <a href='http://www.fcinema.org/categories'>niveles de gravedad</a>. Hecho esto, si se puede no apures, intenta eliminar uno o dos segundos extra antes y después de la escena. Así evitarás posibles sorpresas. En nombre de todos nuestros usuarios ¡gracias por colaborar!</p>"..
+        "<p><b>Película erronea: </b> ¿no es la película que estas viendo? Haz click en <i>Avanzado</i> y luego en <i>Cambiar película</i></p>" ..
+        "<p><b>Calibración manual: </b> ¿fallos en la calibración? Haz click en <i>Avanzado</i> y luego en <i>Calibración manual</i></p>" ..
+        "<i>¿Sigues con preguntas? Visita <a href='http://www.fcinema.org/how'>fcinema.org/how</a></i>",
     ------ Advanced -------------
     l_editor = "Crea tu propia lista de escenas: ",
     b_editor = "Editor",
@@ -227,10 +229,10 @@ intf = {
         -- Read file content, if it's a movie, show title and desc
             for k,v in pairs( dir_list ) do
                 local movie = fcinema.read( config.path .. v )
-                if movie and type(movie)~= 'number' and movie['title'] then
-                    local desc = string.gsub( movie['director'] or 'Unkown', "%s+", " ")
-                    fcinema.movie_list['IDs'][k] = movie['id']--string.gsub( v, '.json', '')
-                    intf.items['list']:add_value( movie['title']..' ('..desc..')', k )
+                if movie and type(movie)~= 'number' and movie['Title'] then
+                    local desc = string.gsub( movie['Director'] or 'Unkown', "%s+", " ")
+                    fcinema.movie_list['IDs'][k] = movie['ImdbCode']--string.gsub( v, '.json', '')
+                    intf.items['list']:add_value( movie['Title']..' ('..desc..')', k )
                 end
             end
             intf.msg( lang.recent_files_folder .. config.path )
@@ -309,20 +311,20 @@ intf = {
             intf.items["director"] = dlg:add_label( subheader, 1, 2, 7, 1)
         
 
-            intf.items['advanced'] = dlg:add_button( lang.advanced, intf.advanced.show, 3, 8, 2, 1)
-            intf.items['help'] = dlg:add_button( lang.b_help, intf.help.show, 1, 8, 1, 2)
-            intf.items['watch'] = dlg:add_button( lang.view_movie, intf.main.list_view, 5, 8, 1, 1)
+            intf.items['advanced'] = dlg:add_button( lang.advanced, intf.advanced.show, 3, 9, 2, 1)
+            intf.items['help'] = dlg:add_button( lang.b_help, intf.help.show, 1, 9, 1, 1)
+            intf.items['watch'] = dlg:add_button( lang.b_next, intf.main.list_view, 5, 9, 1, 1)
           
-            intf.items["message"] = dlg:add_label("", 1, 7, 10, 1)
+            intf.items["message"] = dlg:add_label("", 1, 8, 10, 1)
 
             --intf.main.show_poster()
             --intf.main.toggle_list()
 
-            --intf.items['l_levels'] = dlg:add_label( '<center><i>Filtering level 0.Off - 5.Strict</center></i>', 1, 2, 3, 1 ) --TODO
-            intf.main.show_category( 's', 3, 5 )
-            intf.main.show_category( 'v', 4, 7 )
-            intf.main.show_category( 'p', 5, 8 )
-            intf.main.show_category( 'd', 6, 9 )
+            intf.items['l_levels'] = dlg:add_label( '<center><i>Selecciona la severidad del filtrado</center></i>', 1, 3, 3, 1 ) --TODO
+            intf.main.show_category( 's', 4 )
+            intf.main.show_category( 'v', 5 )
+            intf.main.show_category( 'p', 6 )
+            intf.main.show_category( 'd', 7 )
             intf.items['imdb_parentguide'] = dlg:add_label("<a href='http://www.imdb.com/title/"..fcinema.data['ImdbCode'].."/parentalguide'>IMDB Parents Guide</a>", 5,5,1,1)
             intf.items['kids-in-mind'] = dlg:add_label("<a href='http://www.kids-in-mind.com/cgi-bin/search/search.pl?q="..fcinema.data['Title'].."'>Kids In Mind Guide</a>",5,4,1,1)
             intf.main.apply_level()
@@ -339,7 +341,7 @@ intf = {
         list_view = function ( ... )
             intf.main.apply_level()
             intf.change_dlg()
-            intf.items["l_info"] = dlg:add_label("Fcinema eliminará las escenas con *", 1, 1, 5, 1)
+            intf.items["l_info"] = dlg:add_label("fcinema saltará las escenas marcadas con *", 1, 1, 5, 1)
             intf.items["message"] = dlg:add_label("", 1, 4, 4, 1)
             intf.main.show_warning()
             intf.items['watch'] = dlg:add_button( lang.view_movie, intf.main.watch_movie, 4, 3, 1, 1)
@@ -366,7 +368,7 @@ intf = {
             end
         end,
 
-        show_category = function ( label, pos, preselect )
+        show_category = function ( label, pos )
             local preselect = config.options['l_'..label]
             --intf.del( 'l_'..label )
             --intf.del( 'level'..label )
@@ -390,9 +392,16 @@ intf = {
 
         label = {
             ['s'] = 'Sex & Nudity',
+            ['se'] = '- Explicit sex',
+            ['sn'] = '- Nudity',
+            ['st'] = '- Talking about',
+            ['so'] = '- Obscene lan/ges',
             ['v'] = 'Violence & Gore',
             ['p'] = 'Profanity',
+            ['ps'] = '- Swearword',
+            ['pb'] = '- Blasphemy',
             ['d'] = 'Drugs',
+            --['u'] = 'Unkown',
             ['syn'] = 'Sync'
         },
 
@@ -419,13 +428,20 @@ intf = {
             if not intf.items['scene_list'] then return end
             intf.items['scene_list']:clear()
             local data = fcinema.data
-            local txt, level, typ, desc
+            local txt, level, typ, desc, start, len, subtyp
             for k,v in pairs( data['Scenes'] ) do
                 if intf.main.actions[k] then txt = '*' else txt ='  ' end
                 level = v['Severity']
-                typ = v['Category']
+                typ = intf.main.label[ v['Category'] ]
+                if v['SubCategory'] == 'u' then subtyp = '' else
+                    subtyp = ' ('.. intf.main.label[ v['SubCategory'] ] ..')'
+                    subtyp = string.gsub( subtyp, '- ', '' )
+                end
                 desc = v['AdditionalInfo'] or ''
-                intf.items['scene_list']:add_value( txt..level..typ..' '..desc, k )
+                start = intf.to_hour( v['Start'], 1 )
+                len = intf.to_hour( v['End'] - v['Start'], 1)
+
+                intf.items['scene_list']:add_value( txt..typ..' level '..level..subtyp..' at '..start..' lasting '..len..' '..desc, k )
             end
         end,
 
@@ -694,8 +710,8 @@ intf = {
             intf.items['Stop'] = dlg:add_text_input( "", 8, 4, 2, 1 )
             intf.items['b_end'] = dlg:add_button( lang.now, intf.editor.get_time2, 10, 4, 1, 1)
 
-            intf.items['l_desc'] = dlg:add_label( "Descripción: ", 7, 7, 1, 1 )
-            intf.items['Desc'] = dlg:add_text_input( "",8, 7, 2, 1 )
+            intf.items['l_desc'] = dlg:add_label( "Descripción: ", 7, 6, 1, 1 )
+            intf.items['Desc'] = dlg:add_text_input( "",8, 6, 3, 1 )
 
             intf.items['l_type'] = dlg:add_label( "Tipo y nivel: ", 7, 5, 1, 1 )
             intf.items['Type'] = dlg:add_dropdown( 8, 5, 2, 1)
@@ -704,25 +720,25 @@ intf = {
                 intf.items['level']:add_value( i, i )
             end
 
-            intf.items['l_action'] = dlg:add_label( "Acción", 7, 6, 2, 1 )
-            intf.items['Action'] = dlg:add_dropdown( 8, 6, 1, 1)
+            intf.items['l_action'] = dlg:add_label( "Acción", 7, 7, 1, 1 )
+            intf.items['Action'] = dlg:add_dropdown( 8, 7, 1, 1)
             intf.items['Action']:add_value( "Saltar", 1 )
             intf.items['Action']:add_value( "Sin sonido", 2 )
-            intf.items['Action']:add_value( "Sin imagen", 3 )
-            intf.items['Action']:add_value( "Descripción", 4 )
+            --intf.items['Action']:add_value( "Sin imagen", 3 )
+            --intf.items['Action']:add_value( "Descripción", 4 )
             
 
             intf.items["message"] = dlg:add_label("", 1, 8, 7, 1)
             
             intf.editor.dropdown = {}
-            for k,v in pairs( intf.main.label ) do
+            for k,v in spairs( intf.main.label ) do
                 table.insert( intf.editor.dropdown, k )
                 local i = table.maxn( intf.editor.dropdown )
                 intf.items['Type']:add_value( v, i )
             end
 
             intf.items['b_preview'] = dlg:add_button( lang.preview, intf.editor.preview, 8, 2, 2, 1)
-            intf.items['b_add'] = dlg:add_button( lang.add_scene, intf.editor.add_scene, 2, 7, 1, 1)
+            intf.items['b_add'] = dlg:add_button( lang.add_scene, intf.editor.add_scene, 10, 7, 1, 1)
             intf.items['b_delete'] = dlg:add_button( lang.delete_scene, intf.editor.delete_scene, 1, 7, 1, 1)
             intf.items['b_modify'] = dlg:add_button( lang.modify_scene, intf.editor.modify, 3, 7, 2, 1)
 
@@ -886,9 +902,20 @@ intf = {
                 intf.msg( style.err("Error: ").. "compruebe duración de la escena" )
                 return
             end
+        
+        local subtyp
+        if typ == 'se' or typ == 'sn' or typ == 'st' or typ == 'so' then
+            subtyp = typ
+            typ = 's'
+        elseif typ == 'ps' or typ == 'pb' then
+            subtyp = typ
+            typ = 'p'
+        else
+            subtyp = 'u'
+        end
 
         -- Add the scene
-            if fcinema.add_scene( start, stop, typ, desc, level, action ) == -1 then return end
+            if fcinema.add_scene( start, stop, typ, subtyp, desc, level, action ) == -1 then return end
             fcinema.save()
 
         -- Classify movie as user modified
@@ -1266,7 +1293,7 @@ edl = {
     -- Fast scene edition
         if edl.pressed and edl.last_pressed < t-7/10 then
             edl.pressed = false
-            fcinema.add_scene( edl.first_pressed - 8/10, edl.last_pressed-1/10, 'u', 'Escena sin clasificar', 1, 1 )
+            fcinema.add_scene( edl.first_pressed - 8/10, edl.last_pressed-1/10,'u', 'u', 'Escena sin clasificar', 1, 1 )
             media.unmute()
         end
 
@@ -1429,7 +1456,7 @@ fcinema = {
             data = string.match(response, '{(.+)}')
             if data then
                 data = json.decode( '{'..data..'}' )
-                if data.status and data.status == "Ok" then
+                if data.Status and data.Status == "Ok" then
                     return true
                 end
             end
@@ -1490,13 +1517,14 @@ fcinema = {
         end
     end,
     
-    add_scene = function ( start, stop, typ, desc, level, action )
+    add_scene = function ( start, stop, typ, subtyp, desc, level, action )
     -- Add scene to movie content
 
         local scene = {}
         scene['Start'] = start
         scene['End'] = stop
         scene['Category'] = typ
+        scene['SubCategory'] = subtyp
         scene['Severity'] = level
         scene['Action'] = action
         scene['AdditionalInfo'] = desc or ''
@@ -2344,4 +2372,28 @@ function deepcopy(orig)
         copy = orig
     end
     return copy
+end
+
+function spairs(t, order)
+-- thaks to Michal Kottman on http://stackoverflow.com/questions/15706270/sort-a-table-in-lua
+    -- collect the keys
+    local keys = {}
+    for k in pairs(t) do keys[#keys+1] = k end
+
+    -- if order function given, sort by it by passing the table and keys a, b,
+    -- otherwise just sort the keys 
+    if order then
+        table.sort(keys, function(a,b) return order(t, a, b) end)
+    else
+        table.sort(keys)
+    end
+
+    -- return the iterator function
+    local i = 0
+    return function()
+        i = i + 1
+        if keys[i] then
+            return keys[i], t[keys[i]]
+        end
+    end
 end
