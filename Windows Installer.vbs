@@ -20,20 +20,23 @@ loop
 
 dim xHttp: Set xHttp = createobject("Microsoft.XMLHTTP")
 dim bStrm: Set bStrm = createobject("Adodb.Stream")
-xHttp.Open "GET", "http://fcinema.org/plugin/fcinema.lua", False
+xHttp.Open "GET", "https://raw.githubusercontent.com/fcinema/vlc-plugin/master/fcinema.lua", False
 xHttp.Send
 
-'Set fso = CreateObject("Scripting.FileSystemObject")
-'path = "C:\Program Files (x86)\VideoLAN\VLC\lua\extensions\"
-'exists = fso.FolderExists(path)
+
+dim objFSO
+Set objFSO = CreateObject("Scripting.FileSystemObject")
+
 
 with bStrm
     .type = 1 '//binary
     .open
     .write xHttp.responseBody
-    'if (exists) then 
+    If objFSO.FolderExists("C:\Program Files\VideoLAN\VLC\lua\extensions") Then
+        .savetofile "C:\Program Files\VideoLAN\VLC\lua\extensions\fcinema.lua", 2 '//overwrite
+    Else
         .savetofile "C:\Program Files (x86)\VideoLAN\VLC\lua\extensions\fcinema.lua", 2 '//overwrite
-    'else
-        '.savetofile "C:\Program Files\VideoLAN\VLC\lua\extensions\fcinema.lua", 2 '//overwrite
-    'end if
+    End If
 end with
+
+Wscript.Echo "Fcinema succesfully installed! Run VLC and go to 'View->fcinema'"
