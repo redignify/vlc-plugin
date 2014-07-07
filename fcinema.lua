@@ -1004,14 +1004,23 @@ intf = {
 
         fill_list = function()
         -- Display scenes on editor interface list
+            if not intf.items['list'] then return end
             intf.items['list']:clear()
-            for k,v in pairs( fcinema.data['Scenes'] ) do
-                local start_h = intf.to_hour( v['Start'], 1 )
-                local stop_h = intf.to_hour( v['End'], 1 )
-                local typ = v['Category']
-                local desc = v['AdditionalInfo']
-                local level = v['Severity']
-                intf.items['list']:add_value( typ..level.." "..start_h .." "..desc, k )
+            local data = fcinema.data
+            local txt, level, typ, desc, start, len, subtyp
+            for k,v in pairs( data['Scenes'] ) do
+                if intf.main.actions[k] then txt = '*' else txt ='  ' end
+                level = v['Severity']
+                typ = intf.main.label[ v['Category'] ]
+                if v['SubCategory'] == 'u' then subtyp = '' else
+                    subtyp = ' ('.. intf.main.label[ v['SubCategory'] ] ..')'
+                    subtyp = string.gsub( subtyp, '- ', '' )
+                end
+                desc = v['AdditionalInfo'] or ''
+                start = intf.to_hour( v['Start'], 1 )
+                len = intf.to_hour( v['End'] - v['Start'], 1)
+
+                intf.items['list']:add_value( txt..typ..' level '..level..subtyp..' at '..start..' lasting '..len..' '..desc, k )
             end
         end,
     },
