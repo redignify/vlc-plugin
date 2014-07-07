@@ -433,6 +433,7 @@ intf = {
                 if intf.main.actions[k] then txt = '*' else txt ='  ' end
                 level = v['Severity']
                 typ = intf.main.label[ v['Category'] ]
+                if not v['SubCategory'] then v['SubCategory'] = 'u' end
                 if v['SubCategory'] == 'u' then subtyp = '' else
                     subtyp = ' ('.. intf.main.label[ v['SubCategory'] ] ..')'
                     subtyp = string.gsub( subtyp, '- ', '' )
@@ -1012,6 +1013,7 @@ intf = {
                 if intf.main.actions[k] then txt = '*' else txt ='  ' end
                 level = v['Severity']
                 typ = intf.main.label[ v['Category'] ]
+                if not v['SubCategory'] then v['SubCategory'] = 'u' end
                 if v['SubCategory'] == 'u' then subtyp = '' else
                     subtyp = ' ('.. intf.main.label[ v['SubCategory'] ] ..')'
                     subtyp = string.gsub( subtyp, '- ', '' )
@@ -1537,6 +1539,7 @@ fcinema = {
         scene['Severity'] = level
         scene['Action'] = action
         scene['AdditionalInfo'] = desc or ''
+        scene['AddedBy'] = config.options.name
 
         if not fcinema.data['Scenes'] then
             fcinema.data['Scenes'] = {}
