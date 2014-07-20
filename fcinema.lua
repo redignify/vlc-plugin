@@ -1836,12 +1836,14 @@ sync = {
                     local sync_info = sync.read_sync_info()
                     if sync_info then
                         -- Shots must be according to refernce version
+                        vlc.msg.dbg('[Fcinema] Including autosync info on filter')
                         local offset = sync.info['TimeOffset'] / sync_info['fps']
                         local speed = sync.info['SpeedFactor']
                         for i,v in ipairs(sync_info['Frame']) do
                             sync_info['Frame'][i] = math.floor( ( v - offset ) / speed )
                         end
                         fcinema.data['Shots'] = sync_info
+                        fcinema.save()
                     end
                 end
             else
@@ -2594,8 +2596,9 @@ function find_path(  )
 
 -- Check if cache is somewhere out there
     for k,v in pairs( paths ) do
-        if file_exist( v .. fcinema_path .. config.hash2id_db ) then
+        if file_exist( v .. fcinema_path .. slash..config.hash2id_db ) then
             config.path = v .. fcinema_path .. slash
+            vlc.msg.dbg('[Fcinema] Cache already exist')
             return
         end
     end
@@ -2607,6 +2610,7 @@ function find_path(  )
         end
         if file_touch( v ..fcinema_path..slash..config.hash2id_db) then
             config.path = v ..fcinema_path .. slash
+            vlc.msg.dbg('[Fcinema] New path for cache finded')
             return
         end
     end
