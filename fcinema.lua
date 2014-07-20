@@ -1655,16 +1655,15 @@ fcinema = {
     get_language_pack = function ( language )
         
         local params = ""
-        params = params .. "action=get_lang"
-        params = params .. "&agent=" .. config.agent
-        params = params .. "&version=" .. config.version
-        params = params .. "&lang=".. language
+        local url = 'fcinema.org/lang/'..language..'.json'
         
-        local status, response = net.post( params, fcinema.api_url )
+        local status, response = net.post( params, url )
         intf.msg('')
         if response then
+            vlc.msg.err( response )
             local data = string.match(response, '{(.+)}')
             if data then
+                vlc.msg.dbg('[Fcinema] Language pack correctly dowloaded')
                 data = json.decode( '{'..data..'}' )
                 system.write( config.path .. language .. ".json", json.encode(data) )
             end
@@ -2107,7 +2106,7 @@ net = {
         local host, path = net.parse_url( url )    
         local header = {
             "POST "..path.." HTTP/1.1", 
-            "Host: "..host, 
+            "Host: "..host,
             "Content-Type: application/x-www-form-urlencoded", 
             "Content-Length: "..string.len(params),
             "",
