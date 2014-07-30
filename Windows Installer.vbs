@@ -25,87 +25,65 @@ loop
 dim xHttp: Set xHttp = createobject("Microsoft.XMLHTTP")
 dim bStrm: Set bStrm = createobject("Adodb.Stream")
 dim objFSO: Set objFSO = CreateObject("Scripting.FileSystemObject")
+dim currentdir = objFSO.GetAbsolutePathName(".")
+
+dim directory
 
 
 
-'############# Download fcinema.lua #############
+'############# create folder & find directory #############
 
-xHttp.Open "GET", "https://raw.githubusercontent.com/fcinema/vlc-plugin/master/fcinema.lua", False
-xHttp.Send
+If objFSO.FolderExists("C:\Program Files\VideoLAN\VLC\") Then 
+        directory = "C:\Program Files\VideoLAN\VLC"
 
-with bStrm
-    .type = 1 '//binary
-    .open
-    .write xHttp.responseBody
-    If objFSO.FolderExists("C:\Program Files\VideoLAN\VLC\lua\extensions") Then
-        .savetofile "C:\Program Files\VideoLAN\VLC\lua\extensions\fcinema.lua", 2 '//overwrite
-    Else
-        .savetofile "C:\Program Files (x86)\VideoLAN\VLC\lua\extensions\fcinema.lua", 2 '//overwrite
-    End If
-    .close
-end with
+ElseIf  objFSO.FolderExists("C:\Program Files (x86)\VideoLAN\VLC\") Then
+        directory = "C:\Program Files (x86)\VideoLAN\VLC\"
+Else
+        Wscript.Echo "VLC no encontrado", vbOnlyOk+vbCritical, "Error"
+        'set shell = CreateObject("Shell.Application")
+        'shell.Open "http://www.fcinema.org/how"
+        WScript.Quit
+End If 
 
+On error resume next
+    objFSO.CreateFolder(directory & "lua\extensions")
+    If (Err.Number <> 0) then '& (Err.Number <> 58) Then
+        'error handling:
+        if err.number <> 58 then 
+            WScript.Echo Err.Number & " Srce: " & Err.Source & " Desc: " &  Err.Description
+            WScript.Quit
+        end if
+    Err.Clear
+        
 
-'############# Download cutdet.ax #############
-
-Dim WshShell: Set WshShell = WScript.CreateObject("WScript.Shell")
-xHttp.Open "GET", "https://raw.githubusercontent.com/fcinema/vlc-plugin/master/cutdet.ax", False
-xHttp.Send
-
-with bStrm
-    .type = 1 '//binary
-    .open
-    .write xHttp.responseBody
-    If objFSO.FolderExists("C:\Program Files\VideoLAN\VLC\lua\extensions") Then
-        .savetofile "C:\Program Files\VideoLAN\VLC\lua\extensions\fcinema\cutdet.ax", 2 '//overwrite
-        WshShell.Run """" & "regsvr32" & """" & """C:\Program Files\VideoLAN\VLC\lua\extensions\fcinema\cutdet.ax""", 0, true
-    Else
-        .savetofile "C:\Program Files (x86)\VideoLAN\VLC\lua\extensions\fcinema\cutdet.ax", 2 '//overwrite
-        WshShell.Run """" & "regsvr32" & """" & """C:\Program Files (x86)\VideoLAN\VLC\lua\extensions\fcinema\cutdet.ax""", 0, true
-    End If
-    .close
-end with
+    end if
+    objFSO.CreateFolder(directory & "lua\extensions\fcinema")
+        If (Err.Number <> 0) Then
+        'error handling:
+       if err.number <> 58 then 
+            WScript.Echo Err.Number & " Srce: " & Err.Source & " Desc: " &  Err.Description
+            WScript.Quit
+        end if
+        Err.Clear
+End If
 
 
-'############# Download CutDetector.exe #############
-
-xHttp.Open "GET", "https://raw.githubusercontent.com/fcinema/vlc-plugin/master/CutDetector.exe", False
-xHttp.Send
-
-with bStrm
-    .type = 1 '//binary
-    .open
-    .write xHttp.responseBody
-    If objFSO.FolderExists("C:\Program Files\VideoLAN\VLC\lua\extensions") Then
-        .savetofile "C:\Program Files\VideoLAN\VLC\lua\extensions\fcinema\CutDetector.exe", 2 '//overwrite
-    Else
-        .savetofile "C:\Program Files (x86)\VideoLAN\VLC\lua\extensions\fcinema\CutDetector.exe", 2 '//overwrite
-    End If
-    .close
-end with
+'End Try
 
 
-'############# Download GetShots.vbs #############
 
 
-xHttp.Open "GET", "https://raw.githubusercontent.com/fcinema/vlc-plugin/master/GetShots.vbs", False
-xHttp.Send
 
-with bStrm
-    .type = 1 '//binary
-    .open
-    .write xHttp.responseBody
-    If objFSO.FolderExists("C:\Program Files\VideoLAN\VLC\lua\extensions") Then
-        .savetofile "C:\Program Files\VideoLAN\VLC\lua\extensions\fcinema\GetShots.vbs", 2 '//overwrite
-    Else
-        .savetofile "C:\Program Files (x86)\VideoLAN\VLC\lua\extensions\fcinema\GetShots.vbs", 2 '//overwrite
-    End If
-    .close
-end with
+objFSO.CopyFile ( currendir & "fcinema.lua", directory & "lua\extensions\fcinema.lua", 2)
+
+objFSO.CopyFile ( currendir & "cutdet.ax", directory & "lua\extensions\fcinema\cutdet.ax", 2)
+WshShell.Run """" & "regsvr32" & """" & directory & "lua\extensions\fcinema\cutdet.ax", 0, true
+
+objFSO.CopyFile ( currendir & "CutDetector.exe", directory & "lua\extensions\fcinema\CutDetector.exe", 2)
+
+objFSO.CopyFile ( currendir & "GetShots.vbs", directory & "lua\extensions\fcinema\GetShots.vbs", 2)
 
 
 '############# Confirm installation #############
 
-Wscript.Echo "Fcinema succesfully installed! Run VLC and go to 'View->fcinema'"
-
-
+Wscript.Echo "Fcinema succesfully installed! Run VLC and go to " & Chr(34) & "View->fcinema" & chr(34)

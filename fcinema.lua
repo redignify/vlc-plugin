@@ -1,10 +1,13 @@
+--]]
 --[[
  Fcinema Extension for VLC media player 1.1 and 2.0
  
- Authors:  Miguel Arrieta
+ Authors:  Miguel Arrieta, Alejandro Sopeña
 
- This plugin is based on Guillaume Le Maout vlsub extension
- Contact: http://addons.videolan.org/messages/?action=newmessage&username=exebetche
+ We want to give special thanks to:
+ -  Guillaume Le Maout, for his extraordinary vlc extension "vlsub", a great model for us
+    Contact: http://addons.videolan.org/messages/?action=newmessage&username=exebetche
+ -  Opensubtibles, for his great open database
  
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -24,7 +27,8 @@
 
 ------------------------------- VLC STUFF ------------------------------------
 
---[[Lua scripts are tried in alphabetical order in the user's VLC config
+--[[
+Lua scripts are tried in alphabetical order in the user's VLC config
 directory lua/{playlist,meta,intf}/ subdirectory on Windows and Mac OS X or
 in the user's local share directory (~/.local/share/vlc/lua/... on linux),
 then in the global VLC lua/{playlist,meta,intf}/ directory.
@@ -32,7 +36,7 @@ then in the global VLC lua/{playlist,meta,intf}/ directory.
 
 
 function descriptor()
-    return { 
+    return {
         title = "fcinema",
         version = config.version,
         author = "arrietaeguren",
@@ -91,8 +95,8 @@ function trigger_menu(dlg_id)
         intf.main.show()
     end
     collectgarbage() --~ !important    
-end
-]]--
+end--]]
+
 function meta_changed( ... )
     -- body
 end
@@ -150,7 +154,7 @@ lang = {
     b_sync = "Calibration",
     l_feedback = "Your opinion is important: ",
     b_feedback = "Send feedback",
-    l_bad_movie = "This is not the film you are watching?: ",
+    l_bad_movie = "Not the film you are watching?: ",
     b_bad_movie = "Change film",
     b_auto_sync = "Auto sync",
     back = "Back",
@@ -197,8 +201,6 @@ lang = {
 }
 
 ---------------------------- INTERFACE ------------------------------------
-
-local dlg = nil
 
 intf = {
     
@@ -456,7 +458,7 @@ intf = {
             for k,v in pairs( data['Scenes'] ) do
                 if intf.main.actions[k] then txt = '*' else txt ='  ' end
                 level = v['Severity']
-                typ = intf.main.label[ v['Category'] ]
+                typ = intf.main.label[ v['Category'] ] or 'Unkown'
                 if not v['SubCategory'] then v['SubCategory'] = 'u' end
                 if v['SubCategory'] == 'u' then subtyp = '' else
                     subtyp = ' ('.. intf.main.label[ v['SubCategory'] ] ..')'
@@ -556,18 +558,30 @@ intf = {
             intf.items['l_feedback'] = dlg:add_label( lang.l_feedback, 1, 6, 1, 1 )
             intf.items['b_feedback'] = dlg:add_button( lang.b_feedback, intf.advanced.feedback, 4, 6, 1, 1)
 
-            --intf.items['b_auto_sync'] = dlg:add_button( lang.b_auto_sync, sync.auto, 4, 7, 1, 1 )
-
+            intf.items['l_change_lang'] = dlg:add_label( 'Language/Idioma', 1, 1, 1, 1 )
             intf.items['b_change_lang'] = dlg:add_button( lang.b_change_lang, intf.advanced.lang, 4, 1, 1, 1 )
-
-            --intf.items['l_contribute'] = dlg:add_label( "Fcinema esta desarrollado por una comunidad de voluntarios" ,1, 6, 1, 1 )
             intf.items['language'] = dlg:add_dropdown( 3, 1, 1, 1)
             intf.items['language']:add_value( "Spanish", 2 )
             intf.items['language']:add_value( "English", 1 )
 
-            intf.items["message"] = dlg:add_label("", 1, 7, 7, 1)
-            --intf.items['l_main'] = dlg:add_label( "Empieza: ", 1, 5, 1, 1 )
-            intf.items['b_main'] = dlg:add_button( lang.back, intf.main.show, 4, 8, 1, 1)
+            intf.items['b_update'] = dlg:add_button( "Update", intf.advanced.update, 4, 7, 1, 1 )
+
+            intf.items["message"] = dlg:add_label("", 2, 8, 3, 1)
+            intf.items['b_main'] = dlg:add_button( lang.back, intf.main.show, 1, 8, 1, 1)
+        end,
+
+        update = function ( ... )
+        -- Download fcinema.lua
+            local params = ""
+            --local url = 'https://raw.githubusercontent.com/fcinema/vlc-plugin/master/fcinema.lua'
+            local url = 'http://fcinema.org/plugin/fcinema.lua'
+            local status, response = net.post( params, url )
+            intf.msg('')
+            if not response then return false end
+            system.write( config.path .. "fcinema.lua", response )
+            assert( loadfile( config.path .. "fcinema.lua" ) )
+            
+            
         end,
 
         donate = function ( ... )
@@ -1112,7 +1126,7 @@ intf = {
             local txt, level, typ, desc, start, len, subtyp
             for k,v in pairs( data['Scenes'] ) do
                 level = v['Severity']
-                typ = intf.main.label[ v['Category'] ]
+                typ = intf.main.label[ v['Category'] ] or 'Unkown'
                 if not v['SubCategory'] then v['SubCategory'] = 'u' end
                 if v['SubCategory'] == 'u' then subtyp = '' else
                     subtyp = ' ('.. intf.main.label[ v['SubCategory'] ] ..')'
@@ -1666,6 +1680,7 @@ fcinema = {
                 vlc.msg.dbg('[Fcinema] Language pack correctly dowloaded')
                 data = json.decode( '{'..data..'}' )
                 system.write( config.path .. language .. ".json", json.encode(data) )
+                return true
             end
         end
         
@@ -2567,6 +2582,13 @@ function file_exist(name) -- test readability
     end
 end
 
+function load_update(  )
+    if not file_exist( config.path .. "fcinema.lua" ) then return end
+    local conf = config
+    loaded_chunk = assert( loadfile( config.path .. "fcinema.lua" ) )
+    loaded_chunk()
+    config = conf
+end
 
 function find_path(  )
 -- Find best path for cache (find previously used or select new one)
@@ -2599,6 +2621,7 @@ function find_path(  )
         if file_exist( v .. fcinema_path .. slash..config.hash2id_db ) then
             config.path = v .. fcinema_path .. slash
             vlc.msg.dbg('[Fcinema] Cache already exist')
+            load_update()
             return
         end
     end
