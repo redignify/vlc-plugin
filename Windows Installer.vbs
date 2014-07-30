@@ -25,7 +25,8 @@ loop
 dim xHttp: Set xHttp = createobject("Microsoft.XMLHTTP")
 dim bStrm: Set bStrm = createobject("Adodb.Stream")
 dim objFSO: Set objFSO = CreateObject("Scripting.FileSystemObject")
-dim currentdir = objFSO.GetAbsolutePathName(".")
+dim currentdir
+currentdir = objFSO.GetAbsolutePathName(".")
 
 dim directory
 
@@ -74,14 +75,14 @@ End If
 
 
 
-objFSO.CopyFile ( currendir & "fcinema.lua", directory & "lua\extensions\fcinema.lua", 2)
+objFSO.CopyFile currendir & "fcinema.lua", directory & "lua\extensions\fcinema.lua", true
 
-objFSO.CopyFile ( currendir & "cutdet.ax", directory & "lua\extensions\fcinema\cutdet.ax", 2)
+objFSO.CopyFile currendir & "cutdet.ax", directory & "lua\extensions\fcinema\cutdet.ax", true
 WshShell.Run """" & "regsvr32" & """" & directory & "lua\extensions\fcinema\cutdet.ax", 0, true
 
-objFSO.CopyFile ( currendir & "CutDetector.exe", directory & "lua\extensions\fcinema\CutDetector.exe", 2)
+objFSO.CopyFile currendir & "CutDetector.exe", directory & "lua\extensions\fcinema\CutDetector.exe", true
 
-objFSO.CopyFile ( currendir & "GetShots.vbs", directory & "lua\extensions\fcinema\GetShots.vbs", 2)
+objFSO.CopyFile currendir & "GetShots.vbs", directory & "lua\extensions\fcinema\GetShots.vbs", true
 
 
 '############# Confirm installation #############
