@@ -1550,6 +1550,13 @@ fcinema = {
         local data = string.match(response, '{(.+)}')
         if data then
             data = json.decode( '{'..data..'}' )
+            if data and data['Message'] then
+                if data['Message'] == 'New version' then
+                    intf.advanced.update()
+                else
+                end
+            end
+
             if data and data['Title'] then
                 -- TODO: is ok this stuff below
                 fcinema.load_movie( data )
@@ -2585,10 +2592,17 @@ end
 
 function load_update(  )
     if not file_exist( config.path .. "fcinema.lua" ) then return end
-    local conf = config
+    
+    local os = config.os
+    local slash = config.slash
+    local path = config.path
+
     loaded_chunk = assert( loadfile( config.path .. "fcinema.lua" ) )
     loaded_chunk()
-    config = conf
+
+    config.os = os
+    config.path = path
+    config.slash = slash
 end
 
 function find_path(  )
