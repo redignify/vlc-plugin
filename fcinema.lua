@@ -1314,6 +1314,7 @@ edl = {
     activate = function( )
     -- Activate callback for edl, 'edl.check' will be called around 3-5 times/second
         if edl.active then
+            if not edl.from_user() then return end
             vlc.osd.message( "fcinema is already active", 1, "botton", 1000000 )
             dlg:hide()
         else
@@ -1450,8 +1451,8 @@ edl = {
                 elseif edl.action[i] == 'Label' then
                     media.label('')
                 else
-                   if t < edl.stop[1] - 2/10 then -- avoid loops (jump might go few ms before objective)
-                        media.go_to( edl.stop[1] )
+                    if t < stop - 2/10 then -- avoid loops (jump might go few ms before objective)
+                        media.go_to( stop )
                     end
                 end
                 return
@@ -1751,7 +1752,7 @@ fcinema = {
         scene['Severity'] = level
         scene['Action'] = action
         scene['AdditionalInfo'] = desc or ''
-        scene['AddedBy'] = config.options.name
+        scene['AddedBy'] = 'Me'
 
         if not fcinema.data['Scenes'] then
             fcinema.data['Scenes'] = {}
@@ -2360,8 +2361,8 @@ media = {
         local info = vlc.input.item():info()
         local fps
         for k,v in pairs(info) do
-            if v['Frame rate'] then
-                fps = v['Frame rate']
+            if tonumber(k) then
+                fps = tonumber(k)
                 break
             end
         end
