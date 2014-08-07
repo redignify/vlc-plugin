@@ -2253,6 +2253,12 @@ media = {
     get_info = function()
     -- Get all movie info
 
+    -- Check network module
+        if not vlc.net then
+            intf.msg( style.err('VLC version not compatible:').. " Use <a href='http://www.videolan.org/vlc/'>2.2 or higher</a> ( <a href='https://www.videolan.org/vlc/releases/2.0.8.html'>2.0.8 or lower</a> on win32)" )
+            return
+        end
+
     -- Check input exist
         if not media.input_item() then
             intf.msg( style.err( "No input item") )
