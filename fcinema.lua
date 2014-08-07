@@ -1945,6 +1945,7 @@ sync = {
         if config.os == "win" then
             local vlc_path = vlc.config.datadir()
             local script = vlc_path..'\\lua\\extensions\\fcinema\\GetShots.vbs'
+            if not file_exist( script ) then return end
             local endstart = vlc.input.item():duration() - 300
             local cmd = 'start "" "'..script..'" "'..media.file.uri..'" "'..config.path..'" "'..endstart..'" '
             vlc.msg.dbg("[Fcinema] Executing ".. cmd )
