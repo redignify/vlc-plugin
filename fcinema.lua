@@ -1416,6 +1416,7 @@ edl = {
                 edl.pressed = true
                 media.mute()
                 media.distort()
+                vlc.var.set( vlc.object.input(), "rate", 8 )
             end
             edl.last_pressed = edl.last_time
         end
@@ -1435,10 +1436,11 @@ edl = {
         --vlc.msg.dbg( '[Fcinema] Comprobando tiempo ' .. t )
 
     -- Fast scene edition
-        if edl.pressed and edl.last_pressed < t-7/10 then
+        if edl.pressed and edl.last_pressed < t-4 then   -- take care of rate
             edl.pressed = false
-            fcinema.add_scene( edl.first_pressed - 8/10, edl.last_pressed-1/10,'u', 'u', 'Escena sin clasificar', 1, 1 )
+            fcinema.add_scene( edl.first_pressed - 1, edl.last_pressed,'u', 'u', 'Escena sin clasificar', 1, 1 )
             media.unmute()
+            vlc.var.set( vlc.object.input(), "rate", 1 )
         end
 
     -- Check if current time is in "dark zone"
@@ -1763,7 +1765,7 @@ fcinema = {
 
         if not fcinema.data['Scenes'] then
             fcinema.data['Scenes'] = {}
-        elseif sync.lock() then return -1 end
+        elseif typ ~= 'u' and sync.lock() then return -1 end
 
     -- Get index
         local i = table.maxn( fcinema.data['Scenes'] ) + 1
@@ -2359,6 +2361,7 @@ media = {
         local time = duration * position
         return time
     end,
+
     get_time = function()
         --TODO: if media.file.hasInput == false then return end
         return vlc.var.get( vlc.object.input(), "time" )
@@ -2763,3 +2766,4 @@ end
 function round( value, precision )
     return math.floor(value*precision)/precision
 end
+
