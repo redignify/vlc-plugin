@@ -145,7 +145,6 @@ lang = {
         "<p><b>Película erronea: </b> ¿no es la película que estas viendo? Haz click en <i>Avanzado</i> y luego en <i>Cambiar película</i></p>" ..
         "<p><b>Calibración manual: </b> ¿fallos en la calibración? Haz click en <i>Avanzado</i> y luego en <i>Calibración manual</i></p>" ..
         "<i>¿Sigues con preguntas? Visita <a href='http://www.fcinema.org/how'>fcinema.org/how</a></i>",
-    ------ Advanced -------------
     l_editor = "Create your scene list: ",
     b_editor = "Editor",
     l_donate = "Support fcinema: ",
@@ -160,7 +159,6 @@ lang = {
     back = "Back",
     msg_donate = "All about collab on <a href='http://www.fcinema.org/'>fcinema.org</a>",
     b_change_lang = "Change language",
-    --------- Editor -----------------
     l_editor_check_length = "check scene duration",
     preview = "Preview",
     add_scene = "Add",
@@ -171,10 +169,8 @@ lang = {
     l_error = "Error: ",
     invalid_data = " Please complete all fields",
     now = "Now",
-    ---------- Manual sync ------------
     apply_offset = "Apply offset",
     cancel = "Cancel",
-    ----- Movie selector
     recent_files_folder = "Manualy add files on folder ",
     new_movie_warning = style.err("Important:").." Are you sure film isn't on IMDB database?",
     name = "Name (optional): ",
@@ -195,7 +191,34 @@ lang = {
     l_username = "Username: ",
     l_password = "Password: ",
     share = "Share",
-    l_thanks_for_sharing = "Thanks for your collab!"
+    l_thanks_for_sharing = "Thanks for your collab!",
+    msg_no_sync_scenes = "No hay escenas de sincronización manual",
+    b_msync_is_ok = 'No, esta perfecto',
+    b_msync_begin = 'Si, el principio',
+    b_msync_end = "Si, el final",
+    l_msync_visible = "¿Ves algo de la escena?",
+    l_yes = 'Si',
+    l_no = 'No',
+    l_msync_see_this = "¿Ves solo esta escena?",
+    b_msync_cant_see = "No, ni siquiera esa escena",
+    l_share_new_user = "¿Aun no eres usuario? <a href='http://www.fcinema.org/'>Crear una cuenta</a>",
+    l_editor_go_begin = " Salta al comienzo de la escena",
+    l_editor_go_end = " Salta al final de la escena",
+    l_autoid_error = "Lo sentimos no hay información disponible",
+    l_sync_check_sync = "Comprueba que esta bien calibrado",
+    l_wait = "Espera: ",
+    l_syncing = "los cortes se estan calibrando",
+    l_sync_first_msync = "antes debes calibrar los cortes manualmente",
+    l_sync_thanks_to_db = "Calibrado gracias a la base de datos",
+    l_sync_use_msync = "Usa la calibración manual",
+    msg_connecting = "Conectando con el servidor: ",
+    msg_sending_data = "Enviando datos: ",
+    msg_waiting_server = "Esperando respuesta: ",
+    msg_receiving_data = "Recibiendo respuesta: ",
+    msg_no_net = 'No network access',
+    l_main_select = "Select filter severity",
+    l_main_will_skip = "fcinema saltará las escenas marcadas con *"
+
 
 
 }
@@ -345,7 +368,9 @@ intf = {
             --intf.main.show_poster()
             --intf.main.toggle_list()
 
-            intf.items['l_levels'] = dlg:add_label( '<center><i>Selecciona la severidad del filtrado</center></i>', 1, 3, 3, 1 ) --TODO
+
+
+            intf.items['l_levels'] = dlg:add_label( '<center><i>'..lang.l_main_select..'</center></i>', 1, 3, 3, 1 ) --TODO
             intf.main.show_category( 's', 4 )
             intf.main.show_category( 'v', 5 )
             intf.main.show_category( 'p', 6 )
@@ -366,11 +391,11 @@ intf = {
         list_view = function ( ... )
             intf.main.apply_level()
             intf.change_dlg()
-            intf.items["l_info"] = dlg:add_label("fcinema saltará las escenas marcadas con *", 1, 1, 5, 1)
+            intf.items["l_info"] = dlg:add_label( lang.l_main_will_skip, 1, 1, 5, 1)
             intf.items["message"] = dlg:add_label("", 1, 4, 4, 1)
             intf.main.show_warning()
             intf.items['watch'] = dlg:add_button( lang.view_movie, intf.main.watch_movie, 4, 3, 1, 1)
-            intf.items['back'] = dlg:add_button( "Atras", intf.main.show, 1, 3, 1, 1)
+            intf.items['back'] = dlg:add_button( lang.back, intf.main.show, 1, 3, 1, 1)
 
             intf.items['scene_list'] = dlg:add_list( 1, 2, 4, 1 )
             intf.main.fill_list()
@@ -627,13 +652,13 @@ intf = {
             intf.items['l_mail'] = dlg:add_label( lang.email, 1, 2, 2, 1 )
             intf.items['mail'] = dlg:add_text_input( "", 3, 2, 3, 1 )
 
-            intf.items['l_comment'] = dlg:add_label( "Sugerencia: ", 1, 3, 2, 1 )
+            intf.items['l_comment'] = dlg:add_label( "Feedback: ", 1, 3, 2, 1 )
             intf.items['comment'] = dlg:add_text_input( "", 3, 3, 3, 1 )
             --intf.items['trick'] = dlg:add_label("&nbsp;", 1, 4, 2, 1)
 
             intf.items["message"] = dlg:add_label(" ", 1, 5, 3, 1)
 
-            intf.items['b_send'] = dlg:add_button( "Enviar feedback", intf.feedback.send, 4, 5, 1, 1 )
+            intf.items['b_send'] = dlg:add_button( "Send", intf.feedback.send, 4, 5, 1, 1 )
             intf.items['b_back'] = dlg:add_button( lang.back, intf.advanced.show, 1, 5, 1, 1)
 
         end,
@@ -654,7 +679,7 @@ intf = {
             intf.manual_sync.get_scenes()
 
             if not fcinema.data['SyncScenes'][sync.steep] then
-                intf.msg("No hay escenas de sincronización manual")
+                intf.msg( lang.msg_no_sync_scenes )
                 return
             end
 
@@ -697,12 +722,12 @@ intf = {
         improve = function ( ... )
             intf.change_dlg()
 
-            intf.items['l_now'] = dlg:add_label( "¿Ves algo de la escena?" , 1, 1, 5, 1 )
+            intf.items['l_now'] = dlg:add_label( lang.l_msync_visible, 1, 1, 5, 1 )
             intf.items['l_desc'] = dlg:add_label( (fcinema.data['SyncScenes'][sync.steep]['AdditionalInfo'] or '') , 1, 2, 5, 1 )
             
-            intf.items['b_sync_now'] = dlg:add_button( 'No, esta perfecto', intf.manual_sync.perfect, 2, 3, 1, 1 )            
-            intf.items['b_visible_begin'] = dlg:add_button( "Si, el principio", intf.manual_sync.visible_begin, 1, 3, 1, 1)
-            intf.items['b_visible_end'] = dlg:add_button( "Si, el final", intf.manual_sync.visible_end, 3, 3, 1, 1)
+            intf.items['b_sync_now'] = dlg:add_button( lang.b_msync_is_ok , intf.manual_sync.perfect, 2, 3, 1, 1 )
+            intf.items['b_visible_begin'] = dlg:add_button( lang.b_msync_begin, intf.manual_sync.visible_begin, 1, 3, 1, 1)
+            intf.items['b_visible_end'] = dlg:add_button( lang.b_msync_end, intf.manual_sync.visible_end, 3, 3, 1, 1)
 
             intf.items['b_preview_o'] = dlg:add_button( lang.b_view_original , intf.manual_sync.preview_o, 4, 4, 2, 1 )
             intf.items['b_preview'] = dlg:add_button( lang.b_view_edited, intf.manual_sync.preview, 1, 4, 2, 1 )
@@ -715,12 +740,12 @@ intf = {
         check = function ( ... )
             intf.change_dlg()
 
-            intf.items['l_now'] = dlg:add_label( "¿Ves solo esta escena?" , 1, 1, 5, 1 )
+            intf.items['l_now'] = dlg:add_label( lang.l_msync_see_this , 1, 1, 5, 1 )
             intf.items['l_desc'] = dlg:add_label( (fcinema.data['SyncScenes'][sync.steep]['AdditionalInfo'] or '') , 1, 2, 5, 1 )
             
-            intf.items['b_perfect'] = dlg:add_button( 'Si', intf.manual_sync.perfect, 1, 3, 1, 1 )            
-            intf.items['b_improve'] = dlg:add_button( "No", intf.manual_sync.improve, 2, 3, 1, 1)
-            intf.items['b_mess'] = dlg:add_button( "No, ni siquiera esa escena", intf.manual_sync.show, 3, 3, 1, 1)
+            intf.items['b_perfect'] = dlg:add_button( lang.l_yes, intf.manual_sync.perfect, 1, 3, 1, 1 )
+            intf.items['b_improve'] = dlg:add_button( lang.l_no, intf.manual_sync.improve, 2, 3, 1, 1)
+            intf.items['b_mess'] = dlg:add_button( lang.b_msync_cant_see, intf.manual_sync.show, 3, 3, 1, 1)
 
             --intf.items['b_preview_o'] = dlg:add_button( lang.b_view_original, intf.manual_sync.preview_o, 4, 4, 2, 1 )
             --intf.items['b_preview'] = dlg:add_button( lang.b_view_edited, intf.manual_sync.preview, 1, 4, 2, 1 )
@@ -899,8 +924,7 @@ intf = {
             intf.items['i_name'] = dlg:add_text_input( config.options.name, 2, 1, 1, 1 )
             intf.items['l_pass'] = dlg:add_label( lang.l_password, 1, 2, 1, 1 )
             intf.items['i_pass'] = dlg:add_password( "", 2, 2, 1, 1 )
-
-            intf.items['l_new_user'] = dlg:add_label( "¿Aun no eres usuario? <a href='http://www.fcinema.org/'>Crear una cuenta</a>", 1, 3, 2, 1 )
+            intf.items['l_new_user'] = dlg:add_label( lang.l_share_new_user, 1, 3, 2, 1 )
             --intf.items['message'] = dlg:add_label( "", 1, 4, 2, 1 )
             intf.items['b_upload'] = dlg:add_button( lang.share, intf.editor.upload, 2, 4, 1, 1)
             intf.items['b_cancel'] = dlg:add_button( lang.cancel, intf.editor.show, 1, 4, 1, 1)
@@ -982,7 +1006,7 @@ intf = {
             intf.msg("")
             local start = intf.to_sec( intf.items["Start"]:get_text() )
             if not start then
-                intf.msg( style.err( lang.l_error ) .." Salta al comienzo de la escena")
+                intf.msg( style.err( lang.l_error ) .. lang.l_editor_go_begin)
                 return
             end
             media.go_to( start )
@@ -992,7 +1016,7 @@ intf = {
             intf.msg("")
             local stop = intf.to_sec( intf.items["Stop"]:get_text() )
             if not stop then
-                intf.msg( style.err( lang.l_error ) .." Salta al final de la escena")
+                intf.msg( style.err( lang.l_error ) .. lang.l_editor_go_end )
                 return
             end
             media.go_to( stop )
@@ -1512,11 +1536,11 @@ fcinema = {
                 data = fcinema.read( config.path ..  id .. '.json')
             end
         end
-        
+
     -- Parse readed/received data
         if not data or data['Error'] then
             intf.select_movie.show()
-            intf.msg( "Lo sentimos no hay información disponible")
+            intf.msg( lang.l_autoid_error )
             vlc.msg.dbg( "[Fcinema] No info, displaying searching dialog")
         elseif data['Title'] then
             vlc.msg.dbg( "[Fcinema] Readed: " .. json.encode( data ) .."\n" )
@@ -1684,7 +1708,6 @@ fcinema = {
         local status, response = net.post( params, url )
         intf.msg('')
         if response then
-            vlc.msg.err( response )
             local data = string.match(response, '{(.+)}')
             if data then
                 vlc.msg.dbg('[Fcinema] Language pack correctly dowloaded')
@@ -1834,16 +1857,16 @@ sync = {
             return false
         elseif sync.status > 0 then
             intf.manual_sync.check()
-            intf.msg( "Comprueba que esta bien calibrado" )
+            intf.msg( lang.l_sync_check_sync )
             return true
         elseif sync.syncing == true then
-            intf.msg( style.err("Espera: ").."los cortes se estan calibrando")
-            vlc.msg.dbg( "[Fcinema] Esperando sync")
+            intf.msg( style.err( lang.wait ).. lang.l_syncing )
+            vlc.msg.dbg( "[Fcinema] Waiting sync")
             return true
         else
             intf.manual_sync.show()
-            intf.msg( style.err("Espera: ").."antes debes calibrar los cortes manualmente")
-            vlc.msg.dbg( "[Fcinema] Calibrar a mano")
+            intf.msg( style.err( lang.wait).. lang.l_sync_first_msync )
+            vlc.msg.dbg( "[Fcinema] Manual sync needed")
             return true
         end
     end,
@@ -1904,7 +1927,7 @@ sync = {
                     local confirmed = v['Confirmed'] or 'No'
                     sync.apply_offset( v['TimeOffset'], v['SpeedFactor'], confirmed )
                     sync.status = 3
-                    intf.msg( style.ok( "Calibrado ").." gracias a la base de datos")
+                    intf.msg( style.ok( "Great: ").. lang.l_sync_thanks_to_db )
                     return
                 end
             end
@@ -1971,7 +1994,7 @@ sync = {
         if config.os == "win" then
             local log = system.read( config.path.."StartShots.log" )
             if not log or log == "" then return end
-            for frame, prob in string.gfind( log, "([^%s]+)%s+([^%s]+)%s+[01]") do
+            for frame, prob in string.gmatch( log, "([^%s]+)%s+([^%s]+)%s+[01]") do
                 if prob+0 > 1/10 then
                    table.insert( sync_info['Frame'] , frame+0 )
                    table.insert( sync_info['Probability'] , math.floor(prob*100) )
@@ -1980,7 +2003,7 @@ sync = {
 
             local log = system.read( config.path.."EndShots.log" )
             if not log or log == "" then return end
-            for frame, prob in string.gfind( log, "([^%s]+)%s+([^%s]+)%s+[01]") do
+            for frame, prob in string.gmatch( log, "([^%s]+)%s+([^%s]+)%s+[01]") do
                 if prob+0 > 1/10 then
                    table.insert( sync_info['Frame2'] , frame+0 )
                    table.insert( sync_info['Probability2'] , math.floor(prob*100) )
@@ -1998,10 +2021,10 @@ sync = {
     end,
 
     borders2offset = function ( our_info, ref_info )
-    
+
     -- Check before wasting time    
         if not ref_info or not our_info then 
-            intf.msg( style.err("Atención: ").."Usa la calibración manual")
+            intf.msg( style.err( lang.wait ).. lang.l_sync_use_msync)
             return
         end 
 
@@ -2037,12 +2060,12 @@ sync = {
         end
         offset = -offset
         if max < 5 then
-            intf.msg("Imposible asegurar calibración automática")
+            --intf.msg("Imposible asegurar calibración automática")
             return
         end
 
-        vlc.msg.dbg( "[Fcinema] Posibles offsets: " .. json.encode( sum ) )
-        vlc.msg.dbg( "[Fcinema] Offset automático calculado: " .. offset .." con "..max.." coincidencias")
+        vlc.msg.dbg( "[Fcinema] Posible offsets: " .. json.encode( sum ) )
+        vlc.msg.dbg( "[Fcinema] Offset automatically computed: " .. offset .." with "..max.." coincidences")
 
         return offset
     end,
@@ -2149,23 +2172,23 @@ net = {
 
     http_req = function (host, port, request)
 
-        intf.msg( "Conectando con el servidor: ".. intf.progress_bar( 40 ) )
+        intf.msg( lang.msg_connecting.. intf.progress_bar( 40 ) )
         if not vlc.net then
-            intf.msg( 'No network access')
+            intf.msg( lang.msg_no_net )
             return
         end
         local fd = vlc.net.connect_tcp(host, port)
 
         if not fd or fd == -1 then return false end
         local pollfds = {}
-        intf.msg( "Enviando datos: ".. intf.progress_bar( 50 ) )
+        intf.msg( lang.msg_sending_data .. intf.progress_bar( 50 ) )
         pollfds[fd] = vlc.net.POLLIN
         vlc.net.send(fd, request)
-        intf.msg( "Esperando respuesta: ".. intf.progress_bar( 70 ) )
+        intf.msg( lang.msg_waiting_server .. intf.progress_bar( 70 ) )
         vlc.net.poll(pollfds)
-        intf.msg( "Recibiendo respuesta: ".. intf.progress_bar( 80 ) )
+        intf.msg( lang.msg_receiving_data .. intf.progress_bar( 80 ) )
         local response = vlc.net.recv(fd, 1024*512) -- FIXME
-        vlc.msg.dbg( '[Fcinema] Datos recibidos del servidor: '.. response )
+        vlc.msg.dbg( '[Fcinema] Sent data: '.. response )
         local headerStr, body = string.match(response, "(.-\r?\n)\r?\n(.*)")
         local header = net.parse_header(headerStr)
         local contentLength = tonumber(header["Content-Length"])
@@ -2187,7 +2210,7 @@ net = {
             end
             bodyLenght = string.len(body)
             pct = bodyLenght / contentLength * 30 + 70
-            intf.msg( "Recibiendo datos: ".. intf.progress_bar( pct ) )
+            intf.msg( lang.msg_receiving_data.. intf.progress_bar( pct ) )
         end
         vlc.net.close(fd)
                 
@@ -2197,7 +2220,7 @@ net = {
     parse_header = function(data)
         local header = {}
         
-        for name, s, val in string.gfind(data, "([^%s:]+)(:?)%s([^\n]+)\r?\n") do
+        for name, s, val in string.gmatch(data, "([^%s:]+)(:?)%s([^\n]+)\r?\n") do
             if s == "" then header['statuscode'] =  tonumber(string.sub (val, 1 , 3))
             else header[name] = val end
         end
@@ -2256,7 +2279,7 @@ media = {
 
     -- Check network module
         if not vlc.net then
-            intf.msg( style.err('VLC version not compatible:').. " Use <a href='http://www.videolan.org/vlc/'>2.2 or higher</a> ( <a href='https://www.videolan.org/vlc/releases/2.0.8.html'>2.0.8 or lower</a> on win32)" )
+            intf.msg( style.err('VLC version not compatible:').. " Use <a href='https://www.videolan.org/vlc/releases/2.0.8.html'>2.0.8 release</a>" )
             return
         end
 
